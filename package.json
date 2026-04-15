@@ -1,0 +1,36 @@
+{
+  "name": "cave-mem",
+  "version": "1.0.0",
+  "description": "Combined caveman-style output compression + persistent cross-session memory for Claude Code",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/cave-mem"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "claude-plugin",
+    "memory",
+    "compression",
+    "caveman",
+    "tokens",
+    "mcp"
+  ],
+  "scripts": {
+    "test":          "python -m unittest discover -s tests -v",
+    "test:baseline": "python -m unittest tests.test_baseline -v",
+    "test:cave-mem": "python -m unittest tests.test_cave_mem -v",
+    "report":        "python tests/run_report.py --phase both",
+    "report:before": "python tests/run_report.py --phase baseline",
+    "report:after":  "python tests/run_report.py --phase cave-mem"
+  },
+  "files": [
+    ".claude-plugin/",
+    "hooks/",
+    "skills/"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Test reports (generated artifacts)
+tests/reports/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime flag files (written by hooks, never committed)
+*.cave-mem-active
+*.caveman-active
