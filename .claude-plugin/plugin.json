@@ -1,7 +1,7 @@
 {
   "name": "cave-mem",
-  "version": "1.1.0",
-  "description": "Combined caveman-style compression + persistent cross-session memory. Cuts output tokens ~75% while storing context in compressed format — double savings, single plugin.",
+  "version": "1.2.0",
+  "description": "Combined caveman-style compression + persistent cross-session memory backed by SQLite. Cuts output tokens ~75%, stores memories in compressed format, full-text search across sessions — double savings, single plugin.",
   "author": {
     "name": "cave-mem contributors"
   },

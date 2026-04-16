@@ -1,11 +1,11 @@
 {
   "name": "cave-mem",
-  "version": "1.0.0",
-  "description": "Combined caveman-style output compression + persistent cross-session memory for Claude Code",
+  "version": "1.2.0",
+  "description": "Combined caveman-style output compression + persistent cross-session memory (SQLite) for Claude Code",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/cave-mem"
+    "url": "https://github.com/misterchange/cave-mem"
   },
   "keywords": [
     "claude",
@@ -18,7 +18,8 @@
     "mcp"
   ],
   "scripts": {
-    "viewer":         "node viewer/server.js",
+    "viewer":         "node --no-warnings viewer/server.js",
+    "start":          "node --no-warnings viewer/server.js",
     "test":           "python -m unittest discover -s tests -v",
     "test:baseline":  "python -m unittest tests.test_baseline -v",
     "test:cave-mem":  "python -m unittest tests.test_cave_mem -v",
@@ -34,6 +35,6 @@
     "viewer/"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   }
 }
