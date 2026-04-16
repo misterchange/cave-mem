@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cave-mem · Memory Stream</title>
+<style>
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --border:   #30363d;
+    --text:     #e6edf3;
+    --muted:    #8b949e;
+    --green:    #3fb950;
+    --blue:     #58a6ff;
+    --orange:   #f0883e;
+    --purple:   #bc8cff;
+    --red:      #f85149;
+    --yellow:   #d29922;
+    --badge-bg: #21262d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  header h1 .logo { font-size: 20px; }
+  .badge {
+    background: var(--badge-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-family: monospace;
+  }
+  .badge.green  { color: var(--green);  border-color: var(--green); }
+  .badge.blue   { color: var(--blue);   border-color: var(--blue);  }
+  .badge.orange { color: var(--orange); border-color: var(--orange);}
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+    margin-right: 4px;
+  }
+  .status-dot.live { background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0%,100% { opacity: 1; } 50% { opacity: .4; }
+  }
+  .spacer { flex: 1; }
+  button {
+    background: var(--badge-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  button:hover { background: var(--border); }
+  button.danger { border-color: var(--red); color: var(--red); }
+  button.danger:hover { background: rgba(248,81,73,.1); }
+
+  /* ── Stats bar ── */
+  .stats {
+    display: flex;
+    gap: 24px;
+    padding: 10px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .stat-value { font-size: 20px; font-weight: 700; font-family: monospace; }
+  .stat-value.green  { color: var(--green);  }
+  .stat-value.blue   { color: var(--blue);   }
+  .stat-value.orange { color: var(--orange); }
+  .stat-value.purple { color: var(--purple); }
+
+  /* ── Main layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    height: calc(100vh - 101px);
+  }
+
+  /* ── Stream ── */
+  .stream {
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .stream::-webkit-scrollbar { width: 6px; }
+  .stream::-webkit-scrollbar-track { background: transparent; }
+  .stream::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    transition: border-color .15s;
+    animation: slideIn .2s ease;
+  }
+  .entry:hover { border-color: var(--blue); }
+  .entry.new { border-color: var(--green); animation: flash .6s ease, slideIn .2s ease; }
+  @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+  @keyframes flash {
+    0%,100% { border-color: var(--green); }
+    50%      { border-color: #39d353; box-shadow: 0 0 12px rgba(63,185,80,.3); }
+  }
+
+  .entry-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .tool-badge {
+    background: var(--badge-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-family: monospace;
+    font-weight: 600;
+  }
+  .tool-badge.write   { color: var(--green);  border-color: rgba(63,185,80,.4);  }
+  .tool-badge.read    { color: var(--blue);   border-color: rgba(88,166,255,.4); }
+  .tool-badge.bash    { color: var(--orange); border-color: rgba(240,136,62,.4); }
+  .tool-badge.edit    { color: var(--purple); border-color: rgba(188,140,255,.4);}
+  .tool-badge.default { color: var(--muted);  }
+
+  .entry-time { font-size: 11px; color: var(--muted); font-family: monospace; }
+  .entry-id   { font-size: 10px; color: var(--border); font-family: monospace; margin-left: auto; }
+
+  .entry-summary {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entry-content {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 80px;
+    overflow: hidden;
+    position: relative;
+  }
+  .entry-content.expanded { max-height: none; }
+  .expand-btn {
+    background: none;
+    border: none;
+    color: var(--blue);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 0;
+    margin-top: 4px;
+  }
+
+  .entry-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .token-pill {
+    padding: 1px 7px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: monospace;
+  }
+  .token-pill.saved  { background: rgba(63,185,80,.15);  color: var(--green);  }
+  .token-pill.stored { background: rgba(88,166,255,.15); color: var(--blue);   }
+
+  .level-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .level-dot.full  { background: var(--green);  }
+  .level-dot.lite  { background: var(--blue);   }
+  .level-dot.ultra { background: var(--orange); }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .sidebar h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .tool-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(48,54,61,.5);
+  }
+  .tool-row:last-child { border-bottom: none; }
+  .tool-count {
+    font-family: monospace;
+    color: var(--blue);
+    font-weight: 600;
+  }
+  .level-legend { display: flex; flex-direction: column; gap: 6px; }
+  .level-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  /* ── Empty state ── */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .empty-icon { font-size: 48px; }
+  .empty h2 { font-size: 16px; font-weight: 500; }
+  .empty code {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--green);
+  }
+
+  /* ── Auto-scroll toggle ── */
+  .auto-scroll-btn.active { color: var(--green); border-color: var(--green); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>
+    <span class="logo">🦴</span>
+    cave-mem
+    <span style="color:var(--muted); font-weight:400">· Memory Stream</span>
+  </h1>
+  <span class="badge" id="level-badge">level: —</span>
+  <span class="badge blue" id="conn-badge">
+    <span class="status-dot" id="status-dot"></span>
+    connecting…
+  </span>
+  <span class="spacer"></span>
+  <button class="auto-scroll-btn active" id="auto-scroll-btn" onclick="toggleAutoScroll()">
+    ↓ Auto-scroll
+  </button>
+  <button class="danger" onclick="clearLog()">Clear</button>
+</header>
+
+<div class="stats">
+  <div class="stat">
+    <span class="stat-label">Entries</span>
+    <span class="stat-value blue" id="stat-entries">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Tokens saved</span>
+    <span class="stat-value green" id="stat-saved">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Tokens stored</span>
+    <span class="stat-value orange" id="stat-stored">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Compression ratio</span>
+    <span class="stat-value purple" id="stat-ratio">—</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Active clients</span>
+    <span class="stat-value" id="stat-clients">1</span>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="stream" id="stream">
+    <div class="empty" id="empty-state">
+      <div class="empty-icon">🦴</div>
+      <h2>Waiting for memories…</h2>
+      <p>cave-mem captures tool results as you work.<br>
+         Use any tool in Claude Code to see entries appear here.</p>
+      <code>cave-mem active · watching ~/.claude/cave-mem-memory.jsonl</code>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div>
+      <h3>Tool breakdown</h3>
+      <div id="tool-breakdown">
+        <div style="color:var(--muted);font-size:12px">No entries yet</div>
+      </div>
+    </div>
+    <div>
+      <h3>Compression levels</h3>
+      <div class="level-legend">
+        <div class="level-row">
+          <span class="level-dot lite"></span>
+          <span>lite — ~30% reduction</span>
+        </div>
+        <div class="level-row">
+          <span class="level-dot full"></span>
+          <span>full — ~75% reduction</span>
+        </div>
+        <div class="level-row">
+          <span class="level-dot ultra"></span>
+          <span>ultra — ~90% reduction</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>Log file</h3>
+      <div style="font-family:monospace;font-size:11px;color:var(--muted);word-break:break-all" id="log-path">
+        ~/.claude/cave-mem-memory.jsonl
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let entries     = [];
+  let toolCounts  = {};
+  let totalSaved  = 0;
+  let totalStored = 0;
+  let autoScroll  = true;
+  let historyDone = false;
+
+  const stream    = document.getElementById('stream');
+  const emptyState = document.getElementById('empty-state');
+
+  // ── SSE connection ─────────────────────────────────────────────────────────
+  const es = new EventSource('/stream');
+
+  es.onopen = () => {
+    document.getElementById('status-dot').className = 'status-dot live';
+    document.getElementById('conn-badge').textContent = ' connected';
+    document.getElementById('conn-badge').prepend(
+      Object.assign(document.createElement('span'), {
+        className: 'status-dot live'
+      })
+    );
+  };
+
+  es.onerror = () => {
+    document.getElementById('status-dot').className = 'status-dot';
+    document.getElementById('conn-badge').innerHTML = '<span class="status-dot"></span> disconnected';
+  };
+
+  es.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'connected') {
+      document.getElementById('status-dot').className = 'status-dot live';
+      document.getElementById('conn-badge').innerHTML =
+        '<span class="status-dot live"></span> live';
+    }
+
+    if (msg.type === 'history_end') {
+      historyDone = true;
+      document.getElementById('stat-clients').textContent = '1';
+    }
+
+    if (msg.type === 'cleared') {
+      entries = []; toolCounts = {}; totalSaved = 0; totalStored = 0;
+      stream.innerHTML = '';
+      stream.appendChild(emptyState);
+      updateStats();
+      return;
+    }
+
+    if (msg.type === 'entry') {
+      addEntry(msg.entry, !msg.historical);
+    }
+  };
+
+  // ── Render entry ───────────────────────────────────────────────────────────
+  function toolClass(tool) {
+    if (!tool) return 'default';
+    const t = tool.toLowerCase();
+    if (t === 'write')                   return 'write';
+    if (t === 'read')                    return 'read';
+    if (t === 'bash')                    return 'bash';
+    if (t === 'edit' || t === 'multiedit') return 'edit';
+    return 'default';
+  }
+
+  function fmtTime(iso) {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch (_) { return iso; }
+  }
+
+  function addEntry(entry, isNew = false) {
+    if (emptyState.parentNode === stream) stream.removeChild(emptyState);
+
+    entries.push(entry);
+    toolCounts[entry.tool] = (toolCounts[entry.tool] || 0) + 1;
+    totalSaved  += entry.tokens_saved  || 0;
+    totalStored += Math.ceil((entry.stored_len  || 0) / 4);
+
+    // Update level badge
+    if (entry.level) {
+      const lb = document.getElementById('level-badge');
+      lb.textContent = `level: ${entry.level}`;
+      lb.className   = `badge ${entry.level === 'full' ? 'green' : entry.level === 'ultra' ? 'orange' : 'blue'}`;
+    }
+
+    const el = document.createElement('div');
+    el.className = 'entry' + (isNew ? ' new' : '');
+    el.dataset.id = entry.id;
+
+    const verboseTokens = Math.ceil((entry.verbose_len || 0) / 4);
+    const storedTokens  = Math.ceil((entry.stored_len  || 0) / 4);
+    const savedTokens   = entry.tokens_saved || 0;
+    const pct           = verboseTokens > 0
+      ? Math.round((1 - storedTokens / verboseTokens) * 100)
+      : 0;
+
+    const content = (entry.content || '').trim();
+    const needsExpand = content.length > 200;
+    const contentId = 'c-' + entry.id;
+
+    el.innerHTML = `
+      <div class="entry-header">
+        <span class="tool-badge ${toolClass(entry.tool)}">${entry.tool || 'unknown'}</span>
+        <span class="entry-time">${fmtTime(entry.ts)}</span>
+        <span class="level-dot ${entry.level || 'full'}" title="level: ${entry.level}"></span>
+        <span class="entry-id">[${entry.id}]</span>
+      </div>
+      <div class="entry-summary">${escHtml(entry.summary || '')}</div>
+      ${content ? `
+        <div class="entry-content" id="${contentId}">${escHtml(content)}</div>
+        ${needsExpand ? `<button class="expand-btn" onclick="toggleExpand('${contentId}', this)">show more</button>` : ''}
+      ` : ''}
+      <div class="entry-footer">
+        <span class="token-pill stored">${storedTokens} stored</span>
+        ${savedTokens > 0 ? `<span class="token-pill saved">−${savedTokens} saved (${pct}%)</span>` : ''}
+        <span style="margin-left:auto;font-size:10px;color:var(--border)">${entry.cwd || ''}</span>
+      </div>
+    `;
+
+    // Remove 'new' class after animation
+    if (isNew) setTimeout(() => el.classList.remove('new'), 700);
+
+    stream.appendChild(el);
+    updateStats();
+    if (autoScroll && isNew) el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;');
+  }
+
+  function toggleExpand(id, btn) {
+    const el = document.getElementById(id);
+    if (el.classList.toggle('expanded')) {
+      btn.textContent = 'show less';
+    } else {
+      btn.textContent = 'show more';
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('stat-entries').textContent  = entries.length;
+    document.getElementById('stat-saved').textContent    = totalSaved;
+    document.getElementById('stat-stored').textContent   = totalStored;
+    const totalVerbose = entries.reduce((s,e) => s + Math.ceil((e.verbose_len||0)/4), 0);
+    const ratio = totalVerbose > 0
+      ? ((1 - totalStored / totalVerbose) * 100).toFixed(0) + '%'
+      : '—';
+    document.getElementById('stat-ratio').textContent = ratio;
+
+    // Sidebar breakdown
+    const breakdown = document.getElementById('tool-breakdown');
+    if (Object.keys(toolCounts).length === 0) {
+      breakdown.innerHTML = '<div style="color:var(--muted);font-size:12px">No entries yet</div>';
+    } else {
+      breakdown.innerHTML = Object.entries(toolCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([tool, count]) => `
+          <div class="tool-row">
+            <span class="tool-badge ${toolClass(tool)}">${tool}</span>
+            <span class="tool-count">${count}</span>
+          </div>
+        `).join('');
+    }
+  }
+
+  function toggleAutoScroll() {
+    autoScroll = !autoScroll;
+    document.getElementById('auto-scroll-btn').classList.toggle('active', autoScroll);
+  }
+
+  function clearLog() {
+    if (!confirm('Clear all memory entries?')) return;
+    fetch('/clear', { method: 'POST' });
+  }
+
+  // Poll stats every 10s for active clients
+  setInterval(() => {
+    fetch('/stats')
+      .then(r => r.json())
+      .then(s => {
+        document.getElementById('stat-clients').textContent = s.active_clients || 1;
+        if (s.log_path) {
+          document.getElementById('log-path').textContent = s.log_path;
+        }
+      })
+      .catch(() => {});
+  }, 10000);
+</script>
+</body>
+</html>
