@@ -3,530 +3,538 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>cave-mem · Memory Stream</title>
+<title>cave-mem · memory stream</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;500;600&family=Urbanist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:       #0d1117;
-    --surface:  #161b22;
-    --surface2: #1c2128;
-    --border:   #30363d;
-    --text:     #e6edf3;
-    --muted:    #8b949e;
-    --green:    #3fb950;
-    --blue:     #58a6ff;
-    --orange:   #f0883e;
-    --purple:   #bc8cff;
-    --red:      #f85149;
-    --yellow:   #d29922;
-    --badge-bg: #21262d;
+    --bg:           #faf7f3;
+    --bg-tint:      #f4e9e0;
+    --fg:           #15131a;
+    --fg-muted:     #6b6673;
+    --card:         rgba(255,255,255,0.72);
+    --card-raised:  rgba(255,255,255,0.88);
+    --card-border:  rgba(255,255,255,0.8);
+    --header-bg:    rgba(250,247,243,0.72);
+    --border:       rgba(21,19,26,0.08);
+    --border-soft:  rgba(21,19,26,0.05);
+    --ring:         rgba(132,185,201,0.45);
+
+    --glow-teal:     rgba(133,185,201,0.18);
+    --glow-peach:    rgba(244,177,131,0.18);
+    --glow-lavender: rgba(196,167,231,0.18);
+
+    --teal:         #85b9c9;
+    --teal-soft:    #d4ebf2;
+    --teal-ink:     #3e6978;
+
+    --peach:        #f4b183;
+    --peach-soft:   #fde5d0;
+    --peach-ink:    #9a5a2f;
+
+    --lavender:     #c4a7e7;
+    --lavender-soft:#ece2f7;
+    --lavender-ink: #5b4a7a;
+
+    --sage:         #a5c9a1;
+    --sage-soft:    #dfeddb;
+    --sage-ink:     #486a45;
+
+    --rose:         #e8a8a8;
+    --rose-soft:    #f7dcdc;
+    --rose-ink:     #8a3d3d;
+
+    --hover-wash:   rgba(255,255,255,0.35);
+    --input-wash:   rgba(21,19,26,0.03);
+
+    --font-sans:    'Urbanist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --ease-out:     cubic-bezier(0.23, 1, 0.32, 1);
   }
+
+  html[data-theme="dark"] {
+    --bg:           #0e0c14;
+    --bg-tint:      #1a1524;
+    --fg:           #ece7f0;
+    --fg-muted:     #9a92a8;
+    --card:         rgba(30,24,42,0.55);
+    --card-raised:  rgba(38,31,52,0.7);
+    --card-border:  rgba(255,255,255,0.06);
+    --header-bg:    rgba(14,12,20,0.72);
+    --border:       rgba(255,255,255,0.07);
+    --border-soft:  rgba(255,255,255,0.04);
+    --ring:         rgba(196,167,231,0.55);
+
+    --glow-teal:     rgba(133,185,201,0.12);
+    --glow-peach:    rgba(244,177,131,0.12);
+    --glow-lavender: rgba(196,167,231,0.16);
+
+    --teal:         #8fcadb;
+    --teal-soft:    rgba(133,185,201,0.16);
+    --teal-ink:     #a3dcec;
+
+    --peach:        #f7c29c;
+    --peach-soft:   rgba(244,177,131,0.18);
+    --peach-ink:    #f9cfae;
+
+    --lavender:     #d4bcf0;
+    --lavender-soft:rgba(196,167,231,0.18);
+    --lavender-ink: #d8c3f3;
+
+    --sage:         #b8d8b4;
+    --sage-soft:    rgba(165,201,161,0.18);
+    --sage-ink:     #c6e2c2;
+
+    --rose:         #efbfbf;
+    --rose-soft:    rgba(232,168,168,0.18);
+    --rose-ink:     #f2cfcf;
+
+    --hover-wash:   rgba(255,255,255,0.04);
+    --input-wash:   rgba(255,255,255,0.05);
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
+
+  /* ── Hide all scrollbars ── */
+  html { scrollbar-width: none; }
+  ::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
+  * { scrollbar-width: none; -ms-overflow-style: none; }
+  *::-webkit-scrollbar { display: none; }
+
+  html, body {
     background: var(--bg);
-    color: var(--text);
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    font-size: 14px;
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, var(--glow-teal) 0%, transparent 55%),
+      radial-gradient(900px 500px at 110% 20%, var(--glow-peach) 0%, transparent 60%),
+      radial-gradient(800px 500px at 50% 110%, var(--glow-lavender) 0%, transparent 60%);
+    background-attachment: fixed;
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: 'ss01','ss02';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
     min-height: 100vh;
+    transition: background 300ms var(--ease-out), color 300ms var(--ease-out);
   }
+  body { font-size: 14px; line-height: 1.45; }
 
   /* ── Header ── */
   header {
-    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 14px;
+    backdrop-filter: blur(20px) saturate(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    background: var(--header-bg);
     border-bottom: 1px solid var(--border);
-    padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
   }
-  .logo-wrap { display: flex; align-items: center; gap: 8px; }
-  .logo-wrap h1 { font-size: 15px; font-weight: 700; }
-  .logo-wrap span { font-size: 20px; }
-  .subtitle { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand-mark {
+    font-family: var(--font-display); font-weight: 400; font-size: 22px;
+    letter-spacing: -0.02em;
+  }
+  .brand-sub { color: var(--fg-muted); font-size: 12px; letter-spacing: 0.02em; }
 
   .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 999px; padding: 5px 12px;
+    font-size: 11px; font-family: var(--font-mono); font-weight: 500;
+    background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 3px 10px;
-    font-size: 12px;
-    font-family: monospace;
-    background: var(--badge-bg);
+    backdrop-filter: blur(12px);
   }
-  .pill.green  { color: var(--green);  border-color: rgba(63,185,80,.5);  }
-  .pill.blue   { color: var(--blue);   border-color: rgba(88,166,255,.5); }
-  .pill.orange { color: var(--orange); border-color: rgba(240,136,62,.5); }
-  .dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--muted); flex-shrink: 0;
-  }
-  .dot.live { background: var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  .pill.lv-lite   { background: var(--teal-soft);     color: var(--teal-ink);     border-color: rgba(133,185,201,.35); }
+  .pill.lv-full   { background: var(--sage-soft);     color: var(--sage-ink);     border-color: rgba(165,201,161,.35); }
+  .pill.lv-ultra  { background: var(--peach-soft);    color: var(--peach-ink);    border-color: rgba(244,177,131,.4); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--fg-muted); }
+  .dot.live { background: var(--sage-ink); box-shadow: 0 0 10px var(--sage); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
   .spacer { flex: 1; }
+
   button {
-    background: var(--badge-bg);
+    font: inherit;
+    background: var(--card);
     border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 6px;
-    padding: 5px 12px;
+    color: var(--fg);
+    border-radius: 10px;
+    padding: 6px 13px;
     cursor: pointer;
-    font-size: 12px;
-    transition: background .15s;
+    font-size: 12px; font-weight: 500;
+    white-space: nowrap;
+    transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out), background 150ms;
+    backdrop-filter: blur(12px);
   }
-  button:hover { background: var(--border); }
-  button.danger { border-color: rgba(248,81,73,.5); color: var(--red); }
-  button.danger:hover { background: rgba(248,81,73,.08); }
+  button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -10px rgba(0,0,0,.25); }
+  button:active { transform: translateY(0); }
+  button.danger  { color: var(--rose-ink);  border-color: rgba(232,168,168,.5); background: rgba(247,220,220,.55); }
+  button.primary { color: var(--teal-ink);  border-color: rgba(133,185,201,.45); background: rgba(212,235,242,.6); }
 
   /* ── Global stats ── */
-  .global-stats {
+  .stats {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    padding: 18px 24px 8px;
   }
-  .gstat {
-    background: var(--surface);
-    padding: 10px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+  .stat {
+    background: var(--card);
+    backdrop-filter: blur(20px) saturate(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset,
+                0 8px 24px -12px rgba(0,0,0,0.2);
+    display: flex; flex-direction: column; gap: 4px;
   }
-  .gstat-label { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
-  .gstat-value { font-size: 22px; font-weight: 700; font-family: monospace; line-height: 1; }
-  .gstat-value.green  { color: var(--green);  }
-  .gstat-value.blue   { color: var(--blue);   }
-  .gstat-value.orange { color: var(--orange); }
-  .gstat-value.purple { color: var(--purple); }
-  .gstat-sub  { font-size: 10px; color: var(--muted); }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--fg-muted); font-weight: 600; }
+  .stat-value { font-family: var(--font-display); font-weight: 400; font-size: 28px; line-height: 1; letter-spacing: -0.02em; }
+  .stat-value.teal     { color: var(--teal-ink); }
+  .stat-value.peach    { color: var(--peach-ink); }
+  .stat-value.lavender { color: var(--lavender-ink); }
+  .stat-value.sage     { color: var(--sage-ink); }
+  .stat-value.rose     { color: var(--rose-ink); }
+  .stat-sub { font-size: 11px; color: var(--fg-muted); }
 
   /* ── Layout ── */
   .layout {
     display: grid;
-    grid-template-columns: 1fr 260px;
-    height: calc(100vh - 113px);
+    grid-template-columns: 1fr 300px;
+    gap: 16px;
+    padding: 14px 24px 28px;
   }
 
   /* ── Stream ── */
   .stream {
-    overflow-y: auto;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
-  .stream::-webkit-scrollbar { width: 5px; }
-  .stream::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  /* ── Session group ── */
-  .session-group { margin-bottom: 16px; }
-  .session-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 10px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px 8px 0 0;
-    border-bottom: none;
-    font-size: 12px;
-  }
-  .session-id  { font-family: monospace; color: var(--muted); font-size: 11px; }
-  .session-stats {
-    display: flex;
-    gap: 10px;
-    margin-left: auto;
-    align-items: center;
+    display: flex; flex-direction: column; gap: 14px;
+    min-height: 60vh;
   }
 
-  /* Big reduction badge per session */
-  .reduction-badge {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: rgba(63,185,80,.12);
-    border: 1px solid rgba(63,185,80,.3);
-    border-radius: 6px;
-    padding: 3px 10px;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--green);
-    font-family: monospace;
-  }
-  .reduction-badge .arrow { color: var(--muted); font-size: 10px; }
-  .reduction-badge .before { color: var(--red); text-decoration: line-through; font-size: 11px; }
-  .reduction-badge .after  { color: var(--green); font-size: 13px; }
-
-  .session-entries {
-    border: 1px solid var(--border);
-    border-top: none;
-    border-radius: 0 0 8px 8px;
+  /* ── Session group (collapsible) ── */
+  .session {
+    background: var(--card);
+    backdrop-filter: blur(20px) saturate(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset,
+                0 8px 24px -12px rgba(0,0,0,0.2);
     overflow: hidden;
+    transition: transform 250ms var(--ease-out), box-shadow 250ms var(--ease-out);
   }
+  .session.collapsed .session-body { display: none; }
+  .session-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 150ms;
+  }
+  .session-header:hover { background: var(--hover-wash); }
+  .caret {
+    width: 22px; height: 22px; display: inline-flex;
+    align-items: center; justify-content: center;
+    border-radius: 6px;
+    background: rgba(21,19,26,0.04);
+    color: var(--fg-muted);
+    transition: transform 250ms var(--ease-out);
+    font-size: 11px;
+  }
+  .session.collapsed .caret { transform: rotate(-90deg); }
 
-  /* ── Entry ── */
+  .s-title {
+    font-family: var(--font-display); font-weight: 400;
+    font-size: 16px; letter-spacing: -0.01em;
+  }
+  .s-id {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--fg-muted); opacity: .8;
+  }
+  .s-meta-chips { display: flex; gap: 6px; margin-left: auto; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .chip.teal     { background: var(--teal-soft);     color: var(--teal-ink);     border: 1px solid rgba(133,185,201,.35); }
+  .chip.peach    { background: var(--peach-soft);    color: var(--peach-ink);    border: 1px solid rgba(244,177,131,.4); }
+  .chip.lavender { background: var(--lavender-soft); color: var(--lavender-ink); border: 1px solid rgba(196,167,231,.4); }
+  .chip.sage     { background: var(--sage-soft);     color: var(--sage-ink);     border: 1px solid rgba(165,201,161,.4); }
+  .chip.rose     { background: var(--rose-soft);     color: var(--rose-ink);     border: 1px solid rgba(232,168,168,.4); }
+  .chip.ghost    { background: rgba(21,19,26,.03);   color: var(--fg-muted);     border: 1px solid var(--border); }
+
+  .session-del-btn {
+    border: 1px solid rgba(232,168,168,.5);
+    background: rgba(247,220,220,.4);
+    color: var(--rose-ink);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11px; font-weight: 500;
+    cursor: pointer;
+    transition: background 150ms;
+  }
+  .session-del-btn:hover { background: rgba(232,168,168,.35); }
+
+  .session-body { border-top: 1px solid var(--border-soft); }
+
+  /* ── Entries ── */
   .entry {
     display: grid;
-    grid-template-columns: 90px 1fr auto;
-    align-items: start;
-    gap: 12px;
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(48,54,61,.6);
-    transition: background .12s;
-    animation: fadeIn .2s ease;
+    grid-template-columns: 110px 1fr 110px;
+    gap: 14px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-soft);
+    transition: background 150ms;
   }
   .entry:last-child { border-bottom: none; }
-  .entry:hover { background: rgba(88,166,255,.04); }
-  .entry.new-entry {
-    animation: flashNew .5s ease, fadeIn .2s ease;
-  }
-  @keyframes fadeIn  { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:none} }
+  .entry:hover { background: var(--hover-wash); }
+  .entry.new { animation: flashNew 800ms var(--ease-out); }
   @keyframes flashNew {
-    0%,100%{ background: transparent; }
-    30%    { background: rgba(63,185,80,.1); }
+    0%,100% { background: transparent; }
+    30%     { background: var(--sage-soft); }
   }
 
-  /* Left col: tool + time */
-  .entry-left { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .e-left { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
   .tool-tag {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-family: monospace;
-    font-weight: 600;
-    border: 1px solid transparent;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    padding: 2px 9px; border-radius: 6px;
+    max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .tool-tag.Write    { color:#3fb950; background:rgba(63,185,80,.1);  border-color:rgba(63,185,80,.25);  }
-  .tool-tag.Edit     { color:#bc8cff; background:rgba(188,140,255,.1);border-color:rgba(188,140,255,.25);}
-  .tool-tag.MultiEdit{ color:#bc8cff; background:rgba(188,140,255,.1);border-color:rgba(188,140,255,.25);}
-  .tool-tag.Read     { color:#58a6ff; background:rgba(88,166,255,.1); border-color:rgba(88,166,255,.25); }
-  .tool-tag.Bash     { color:#f0883e; background:rgba(240,136,62,.1); border-color:rgba(240,136,62,.25); }
-  .tool-tag.default  { color:#8b949e; background:rgba(139,148,158,.08);border-color:rgba(139,148,158,.2);}
-  .entry-time { font-size: 10px; color: var(--muted); font-family: monospace; }
+  .tool-tag.Write     { background: var(--sage-soft);     color: var(--sage-ink);     }
+  .tool-tag.Edit      { background: var(--lavender-soft); color: var(--lavender-ink); }
+  .tool-tag.MultiEdit { background: var(--lavender-soft); color: var(--lavender-ink); }
+  .tool-tag.Read      { background: var(--teal-soft);     color: var(--teal-ink);     }
+  .tool-tag.Bash      { background: var(--peach-soft);    color: var(--peach-ink);    }
+  .tool-tag.Glob      { background: var(--rose-soft);     color: var(--rose-ink);     }
+  .tool-tag.Grep      { background: var(--rose-soft);     color: var(--rose-ink);     }
+  .tool-tag.default   { background: rgba(21,19,26,.04);   color: var(--fg-muted);     }
+  .e-time { font-family: var(--font-mono); font-size: 10px; color: var(--fg-muted); }
 
-  /* Mid col: summary + content */
-  .entry-mid { min-width: 0; }
-  .entry-summary {
-    font-size: 12px;
-    font-family: monospace;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .e-mid { min-width: 0; }
+  .e-summary {
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--fg);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     margin-bottom: 3px;
   }
-  .entry-content {
-    font-size: 11px;
-    color: var(--muted);
-    line-height: 1.45;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .e-content {
+    font-size: 12px; color: var(--fg-muted); line-height: 1.5;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .entry-content.exp { white-space: pre-wrap; word-break: break-word; }
+  .e-content.expanded {
+    white-space: pre-wrap; word-break: break-word;
+    background: rgba(21,19,26,.03); border-radius: 8px;
+    padding: 8px 10px; margin-top: 4px;
+    font-family: var(--font-mono); font-size: 11px;
+  }
   .expand-btn {
-    background: none; border: none;
-    color: var(--blue); cursor: pointer;
-    font-size: 10px; padding: 1px 0;
-    display: block; margin-top: 2px;
+    background: none; border: none; color: var(--teal-ink);
+    cursor: pointer; font-size: 10px; font-weight: 600;
+    padding: 2px 0; margin-top: 3px;
   }
+  .expand-btn:hover { text-decoration: underline; }
 
-  /* Right col: token reduction */
-  .token-reduction {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 3px;
-    min-width: 90px;
+  .e-right {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 3px; font-family: var(--font-mono);
   }
-  .tok-before {
-    font-size: 11px;
-    font-family: monospace;
-    color: var(--red);
-    text-decoration: line-through;
-    opacity: .7;
-  }
-  .tok-after {
-    font-size: 13px;
-    font-family: monospace;
-    font-weight: 700;
-    color: var(--blue);
-  }
+  .tok-before { font-size: 11px; color: var(--fg-muted); text-decoration: line-through; opacity: .6; }
+  .tok-after  { font-size: 13px; font-weight: 600; color: var(--teal-ink); }
   .tok-pct {
-    font-size: 12px;
-    font-family: monospace;
-    font-weight: 700;
-    color: var(--green);
-    background: rgba(63,185,80,.1);
-    border: 1px solid rgba(63,185,80,.25);
-    border-radius: 4px;
-    padding: 1px 6px;
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    background: var(--sage-soft); color: var(--sage-ink);
   }
-  .tok-pct.zero { color: var(--muted); background: none; border-color: transparent; }
-  .tok-id { font-size: 9px; color: var(--border); font-family: monospace; }
+  .tok-pct.zero { background: rgba(21,19,26,.03); color: var(--fg-muted); opacity: .6; }
 
   /* ── Sidebar ── */
-  .sidebar {
-    border-left: 1px solid var(--border);
-    overflow-y: auto;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    background: var(--surface);
+  .sidebar { display: flex; flex-direction: column; gap: 14px; }
+  .panel {
+    background: var(--card);
+    backdrop-filter: blur(20px) saturate(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset,
+                0 8px 24px -12px rgba(0,0,0,0.2);
   }
-  .sb-section h3 {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--muted);
-    margin-bottom: 8px;
+  .panel h3 {
+    font-family: var(--font-display); font-weight: 400;
+    font-size: 14px; letter-spacing: -0.01em;
+    margin-bottom: 12px;
   }
+  .panel h3 .hint { font-family: var(--font-sans); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--fg-muted); font-weight: 600; margin-left: 6px; }
+
   .tool-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 3px 0;
-    font-size: 12px;
-    border-bottom: 1px solid rgba(48,54,61,.4);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; border-bottom: 1px solid var(--border-soft);
   }
   .tool-row:last-child { border-bottom: none; }
-  .tool-count { font-family: monospace; color: var(--blue); font-weight: 700; font-size: 13px; }
-  .session-row {
-    padding: 6px 8px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-bottom: 6px;
-    font-size: 11px;
-  }
-  .session-row .s-id  { color: var(--muted); font-family: monospace; font-size: 10px; }
-  .session-row .s-red {
-    font-size: 14px; font-weight: 700;
-    color: var(--green); font-family: monospace;
-  }
-  .session-row .s-det { color: var(--muted); font-size: 10px; }
-  .session-row .s-del {
-    float: right;
-    background: none;
-    border: 1px solid rgba(248,81,73,.4);
-    color: var(--red);
-    border-radius: 4px;
-    padding: 1px 6px;
-    cursor: pointer;
-    font-size: 10px;
-    margin-left: 6px;
-  }
-  .session-row .s-del:hover { background: rgba(248,81,73,.12); }
+  .tool-count { font-family: var(--font-mono); font-weight: 600; font-size: 13px; color: var(--teal-ink); }
 
-  /* Delete btn on session header */
-  .session-del-btn {
-    background: none;
-    border: 1px solid rgba(248,81,73,.35);
-    color: var(--red);
-    border-radius: 5px;
-    padding: 2px 8px;
-    font-size: 10px;
-    cursor: pointer;
-    transition: background .15s;
+  .level-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; padding: 4px 0;
   }
-  .session-del-btn:hover { background: rgba(248,81,73,.12); }
+  .level-swatch { width: 10px; height: 10px; border-radius: 50%; }
 
-  /* Storage info box */
-  .storage-box {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 10px;
-    font-size: 11px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-  .storage-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .storage-label { color: var(--muted); }
-  .storage-val   { font-family: monospace; font-weight: 700; color: var(--text); }
-  .storage-val.green  { color: var(--green); }
-  .storage-val.orange { color: var(--orange); }
-  .storage-bar-wrap {
-    background: var(--border);
-    border-radius: 3px;
-    height: 4px;
-    overflow: hidden;
-    margin-top: 2px;
-  }
-  .storage-bar { height: 100%; border-radius: 3px; background: var(--green); transition: width .4s; }
+  .storage-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 12px; }
+  .storage-row .lbl { color: var(--fg-muted); }
+  .storage-row .val { font-family: var(--font-mono); font-weight: 500; }
+  .storage-bar-wrap { background: var(--border); border-radius: 999px; height: 5px; margin: 6px 0; overflow: hidden; }
+  .storage-bar { height: 100%; background: linear-gradient(90deg, var(--teal), var(--lavender)); border-radius: 999px; transition: width 400ms var(--ease-out); }
 
-  /* ── Empty ── */
   .empty {
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    height: 100%; gap: 10px;
-    color: var(--muted); text-align: center;
+    padding: 80px 20px; gap: 14px;
+    color: var(--fg-muted); text-align: center;
   }
-  .empty-icon { font-size: 40px; }
-  .empty h2 { font-size: 14px; font-weight: 500; }
+  .empty-emoji { font-size: 48px; opacity: .6; }
+  .empty h2 { font-family: var(--font-display); font-weight: 400; font-size: 20px; color: var(--fg); }
   .empty code {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 14px;
-    font-family: monospace;
-    font-size: 11px;
-    color: var(--green);
+    background: rgba(21,19,26,.04); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 14px;
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--teal-ink);
+  }
+
+  @media (max-width: 960px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .layout { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
-<!-- ── Header ─────────────────────────────────────────────────── -->
 <header>
-  <div class="logo-wrap">
-    <span>🦴</span>
-    <h1>cave-mem <span class="subtitle">· Memory Stream</span></h1>
+  <div class="brand">
+    <span class="brand-mark">cave-mem</span>
+    <span class="brand-sub">memory stream</span>
   </div>
-  <div class="pill green" id="level-pill">level: —</div>
-  <div class="pill blue">
+  <div class="pill" id="level-pill">level: —</div>
+  <div class="pill">
     <span class="dot" id="conn-dot"></span>
     <span id="conn-label">connecting…</span>
   </div>
   <div class="spacer"></div>
-  <button id="autoscroll-btn" onclick="toggleAutoScroll()" title="Auto-scroll to newest">↓ Auto-scroll</button>
-  <button class="danger" onclick="clearLog()">Clear</button>
+  <button id="theme-btn" onclick="toggleTheme()" title="toggle theme">☾</button>
+  <button id="collapse-btn" onclick="toggleAllSessions()">⇅ collapse all</button>
+  <button id="autoscroll-btn" onclick="toggleAutoScroll()">↓ auto-scroll</button>
+  <button class="danger" onclick="clearLog()">clear</button>
 </header>
 
-<!-- ── Global stats ──────────────────────────────────────────── -->
-<div class="global-stats">
-  <div class="gstat">
-    <span class="gstat-label">Entries</span>
-    <span class="gstat-value blue"  id="gs-entries">0</span>
-    <span class="gstat-sub">total captured</span>
+<div class="stats">
+  <div class="stat">
+    <span class="stat-label">Entries</span>
+    <span class="stat-value teal" id="gs-entries">0</span>
+    <span class="stat-sub">total captured</span>
   </div>
-  <div class="gstat">
-    <span class="gstat-label">Verbose tokens</span>
-    <span class="gstat-value" style="color:var(--red)" id="gs-verbose">0</span>
-    <span class="gstat-sub">before compression</span>
+  <div class="stat">
+    <span class="stat-label">Verbose</span>
+    <span class="stat-value rose" id="gs-verbose">0</span>
+    <span class="stat-sub">tokens before</span>
   </div>
-  <div class="gstat">
-    <span class="gstat-label">Stored tokens</span>
-    <span class="gstat-value orange" id="gs-stored">0</span>
-    <span class="gstat-sub">after compression</span>
+  <div class="stat">
+    <span class="stat-label">Stored</span>
+    <span class="stat-value peach" id="gs-stored">0</span>
+    <span class="stat-sub">tokens after</span>
   </div>
-  <div class="gstat">
-    <span class="gstat-label">Tokens saved</span>
-    <span class="gstat-value green"  id="gs-saved">0</span>
-    <span class="gstat-sub">eliminated</span>
+  <div class="stat">
+    <span class="stat-label">Saved</span>
+    <span class="stat-value sage" id="gs-saved">0</span>
+    <span class="stat-sub">tokens eliminated</span>
   </div>
-  <div class="gstat">
-    <span class="gstat-label">Reduction</span>
-    <span class="gstat-value purple" id="gs-pct">—</span>
-    <span class="gstat-sub" id="gs-clients">0 active clients</span>
+  <div class="stat">
+    <span class="stat-label">Reduction</span>
+    <span class="stat-value lavender" id="gs-pct">—</span>
+    <span class="stat-sub" id="gs-clients">0 active clients</span>
   </div>
 </div>
 
-<!-- ── Main layout ───────────────────────────────────────────── -->
 <div class="layout">
 
-  <!-- Stream -->
   <div class="stream" id="stream">
     <div class="empty" id="empty-state">
-      <div class="empty-icon">🦴</div>
+      <div class="empty-emoji">🦴</div>
       <h2>Waiting for memories…</h2>
       <p>Use any tool in Claude Code — entries stream here in real-time.</p>
-      <code>watching ~/.claude/cave-mem-memory.jsonl</code>
+      <code>~/.claude/cave-mem-memory.db</code>
     </div>
   </div>
 
-  <!-- Sidebar -->
   <div class="sidebar">
-    <div class="sb-section">
-      <h3>Token reduction per session</h3>
+    <div class="panel">
+      <h3>Sessions <span class="hint">per-session reduction</span></h3>
       <div id="sb-sessions">
-        <div style="color:var(--muted);font-size:12px">No sessions yet</div>
+        <div style="color:var(--fg-muted);font-size:12px">No sessions yet</div>
       </div>
     </div>
-    <div class="sb-section">
+    <div class="panel">
       <h3>Tool breakdown</h3>
       <div id="sb-tools">
-        <div style="color:var(--muted);font-size:12px">No entries yet</div>
+        <div style="color:var(--fg-muted);font-size:12px">No entries yet</div>
       </div>
     </div>
-    <div class="sb-section">
+    <div class="panel">
       <h3>Compression levels</h3>
-      <div style="display:flex;flex-direction:column;gap:5px;font-size:12px">
-        <div style="display:flex;gap:8px;align-items:center">
-          <span style="width:8px;height:8px;border-radius:50%;background:var(--blue);display:inline-block"></span>
-          lite — ~30% reduction
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block"></span>
-          full — ~75% reduction
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span style="width:8px;height:8px;border-radius:50%;background:var(--orange);display:inline-block"></span>
-          ultra — ~90% reduction
-        </div>
-      </div>
+      <div class="level-row"><span class="level-swatch" style="background:var(--teal)"></span>lite <span style="color:var(--fg-muted);margin-left:auto">~30%</span></div>
+      <div class="level-row"><span class="level-swatch" style="background:var(--sage-ink)"></span>full <span style="color:var(--fg-muted);margin-left:auto">~75%</span></div>
+      <div class="level-row"><span class="level-swatch" style="background:var(--peach)"></span>ultra <span style="color:var(--fg-muted);margin-left:auto">~90%</span></div>
     </div>
-    <div class="sb-section">
-      <h3>Storage &amp; memory</h3>
-      <div class="storage-box" id="storage-box">
-        <div class="storage-row">
-          <span class="storage-label">🗄️ DB</span>
-          <span class="storage-val" style="font-size:9px;color:var(--muted);word-break:break-all" id="sb-logpath">~/.claude/cave-mem-memory.db</span>
-        </div>
-        <div class="storage-row">
-          <span class="storage-label">DB size</span>
-          <span class="storage-val orange" id="st-size">—</span>
-        </div>
-        <div class="storage-bar-wrap"><div class="storage-bar" id="st-bar" style="width:0%"></div></div>
-        <div class="storage-row">
-          <span class="storage-label">Engine</span>
-          <span class="storage-val" style="font-size:10px;color:var(--muted)">SQLite (node:sqlite)</span>
-        </div>
-        <div class="storage-row">
-          <span class="storage-label">Entries</span>
-          <span class="storage-val green" id="st-entries">—</span>
-        </div>
-        <div class="storage-row">
-          <span class="storage-label">Est. per entry</span>
-          <span class="storage-val" id="st-per">~300 bytes</span>
-        </div>
-        <div class="storage-row" style="margin-top:2px;padding-top:4px;border-top:1px solid var(--border)">
-          <span style="font-size:10px;color:var(--muted)">At 10k entries ≈ 3 MB</span>
-        </div>
-      </div>
+    <div class="panel">
+      <h3>Storage</h3>
+      <div class="storage-row"><span class="lbl">DB size</span><span class="val" id="st-size">—</span></div>
+      <div class="storage-bar-wrap"><div class="storage-bar" id="st-bar" style="width:0%"></div></div>
+      <div class="storage-row"><span class="lbl">Engine</span><span class="val" style="font-size:10px;color:var(--fg-muted)">SQLite · node:sqlite</span></div>
+      <div class="storage-row"><span class="lbl">Entries</span><span class="val" id="st-entries">—</span></div>
+      <div class="storage-row"><span class="lbl">Per entry</span><span class="val" id="st-per">~300 B</span></div>
     </div>
   </div>
 
 </div>
 
 <script>
+// ── Theme ────────────────────────────────────────────────────────────────────
+(function initTheme() {
+  const stored = localStorage.getItem('cave-mem-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = stored || (prefersDark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('cave-mem-theme', next);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = next === 'dark' ? '☀' : '☾';
+}
+window.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀' : '☾';
+});
+
 // ── State ────────────────────────────────────────────────────────────────────
-// sessions: Map<sessionId, { entries:[], verboseTokens, storedTokens, savedTokens }>
 const sessions   = new Map();
 const toolCounts = {};
+const collapsedSessions = new Set();
 let totalVerbose = 0, totalStored = 0, totalSaved = 0;
 let autoScroll   = false;
+let allCollapsed = false;
 
-const streamEl    = document.getElementById('stream');
-const emptyEl     = document.getElementById('empty-state');
+const streamEl = document.getElementById('stream');
+const emptyEl  = document.getElementById('empty-state');
 
 // ── SSE ──────────────────────────────────────────────────────────────────────
 const es = new EventSource('/stream');
-
-es.onopen = () => setConn(true);
+es.onopen  = () => setConn(true);
 es.onerror = () => setConn(false);
-
 es.onmessage = e => {
   const msg = JSON.parse(e.data);
   if (msg.type === 'connected')       setConn(true);
@@ -537,7 +545,7 @@ es.onmessage = e => {
 };
 
 function setConn(ok) {
-  document.getElementById('conn-dot').className   = 'dot' + (ok ? ' live' : '');
+  document.getElementById('conn-dot').className = 'dot' + (ok ? ' live' : '');
   document.getElementById('conn-label').textContent = ok ? 'live' : 'disconnected';
 }
 
@@ -547,13 +555,15 @@ function ingestEntry(entry, isNew) {
 
   const sid = entry.session_id || 'unknown';
   if (!sessions.has(sid)) {
-    sessions.set(sid, { entries: [], verboseTokens: 0, storedTokens: 0, savedTokens: 0, firstTs: entry.ts });
+    sessions.set(sid, { entries: [], verboseTokens: 0, storedTokens: 0, savedTokens: 0, firstTs: entry.ts, lastTs: entry.ts, levels: new Set() });
   }
   const sess = sessions.get(sid);
-  sess.entries.unshift(entry);   // newest first within session
+  sess.entries.unshift(entry);
+  sess.lastTs = entry.ts;
+  if (entry.level) sess.levels.add(entry.level);
 
-  const vTok = Math.ceil((entry.verbose_len || 0) / 4);
-  const sTok = Math.ceil((entry.stored_len  || 0) / 4);
+  const vTok  = Math.ceil((entry.verbose_len || 0) / 4);
+  const sTok  = Math.ceil((entry.stored_len  || 0) / 4);
   const saved = entry.tokens_saved || 0;
 
   sess.verboseTokens += vTok;
@@ -569,7 +579,7 @@ function ingestEntry(entry, isNew) {
   if (entry.level) {
     const lp = document.getElementById('level-pill');
     lp.textContent = 'level: ' + entry.level;
-    lp.className = 'pill ' + (entry.level === 'ultra' ? 'orange' : entry.level === 'lite' ? 'blue' : 'green');
+    lp.className = 'pill lv-' + entry.level;
   }
 
   renderEntry(entry, isNew, sess);
@@ -584,96 +594,108 @@ function ingestEntry(entry, isNew) {
 
 // ── Render entry ─────────────────────────────────────────────────────────────
 function renderEntry(entry, isNew, sess) {
-  const sid   = entry.session_id || 'unknown';
-  const gid   = 'sg-' + CSS.escape(sid);
-  let   group = document.getElementById(gid);
+  const sid = entry.session_id || 'unknown';
+  const gid = 'sg-' + safeId(sid);
+  let group = document.getElementById(gid);
 
   if (!group) {
-    // New session group — insert at TOP of stream
     group = document.createElement('div');
-    group.className = 'session-group';
+    group.className = 'session' + (collapsedSessions.has(sid) ? ' collapsed' : '');
     group.id = gid;
     group.innerHTML = `
-      <div class="session-header" id="sh-${CSS.escape(sid)}">
-        <span style="font-size:11px;font-weight:600">Session</span>
-        <span class="session-id">${sid.slice(0,16)}…</span>
-        <div class="session-stats" id="ss-${CSS.escape(sid)}">
-          <div class="reduction-badge" id="rb-${CSS.escape(sid)}">
-            <span class="before" id="rb-before-${CSS.escape(sid)}">0 tok</span>
-            <span class="arrow">▶</span>
-            <span class="after"  id="rb-after-${CSS.escape(sid)}">0 tok</span>
-            <span style="color:var(--muted);font-size:10px">|</span>
-            <span id="rb-pct-${CSS.escape(sid)}">0%</span>
-            <span style="font-size:10px;color:var(--muted)">saved</span>
-          </div>
-          <button class="session-del-btn" onclick="deleteSession('${sid.replace(/'/g,"\\'")}')">🗑 Delete session</button>
+      <div class="session-header" onclick="toggleSession('${escapeJs(sid)}')">
+        <span class="caret">▾</span>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span class="s-title">Session</span>
+          <span class="s-id">${esc(sid).slice(0,32)}</span>
+        </div>
+        <div class="s-meta-chips" id="ss-${safeId(sid)}">
+          <span class="chip ghost" id="sc-count-${safeId(sid)}">0 entries</span>
+          <span class="chip peach" id="sc-before-${safeId(sid)}">0 tok</span>
+          <span class="chip sage" id="sc-after-${safeId(sid)}">0 tok</span>
+          <span class="chip lavender" id="sc-pct-${safeId(sid)}">0% saved</span>
+          <button class="session-del-btn" onclick="event.stopPropagation();deleteSession('${escapeJs(sid)}')">🗑 delete</button>
         </div>
       </div>
-      <div class="session-entries" id="se-${CSS.escape(sid)}"></div>
+      <div class="session-body" id="se-${safeId(sid)}"></div>
     `;
-    // Newest session at top
     streamEl.insertBefore(group, streamEl.firstChild);
   }
 
-  // Update session reduction badge
+  // Update chips
   const pct = sess.verboseTokens > 0
     ? Math.round((1 - sess.storedTokens / sess.verboseTokens) * 100)
     : 0;
-  const el = s => document.getElementById(s + CSS.escape(sid));
-  if (el('rb-before-')) el('rb-before-').textContent = sess.verboseTokens + ' tok';
-  if (el('rb-after-'))  el('rb-after-').textContent  = sess.storedTokens  + ' tok';
-  if (el('rb-pct-'))    el('rb-pct-').textContent    = pct + '%';
+  const gid_ = s => document.getElementById(s + safeId(sid));
+  if (gid_('sc-count-'))  gid_('sc-count-').textContent  = sess.entries.length + ' entries';
+  if (gid_('sc-before-')) gid_('sc-before-').textContent = sess.verboseTokens + ' tok';
+  if (gid_('sc-after-'))  gid_('sc-after-').textContent  = sess.storedTokens  + ' tok';
+  if (gid_('sc-pct-'))    gid_('sc-pct-').textContent    = pct + '% saved';
 
-  // Build entry card
+  // Build entry
   const vTok  = Math.ceil((entry.verbose_len || 0) / 4);
   const sTok  = Math.ceil((entry.stored_len  || 0) / 4);
-  const saved = entry.tokens_saved || 0;
   const ePct  = vTok > 0 ? Math.round((1 - sTok / vTok) * 100) : 0;
 
   const card = document.createElement('div');
-  card.className = 'entry' + (isNew ? ' new-entry' : '');
+  card.className = 'entry' + (isNew ? ' new' : '');
   card.dataset.id = entry.id;
 
   const tool    = entry.tool || 'unknown';
-  const tClass  = ['Write','Edit','MultiEdit','Read','Bash'].includes(tool) ? tool : 'default';
+  const toolShort = tool.startsWith('mcp__') ? tool.split('__').slice(-1)[0] : tool;
+  const tClass  = ['Write','Edit','MultiEdit','Read','Bash','Glob','Grep'].includes(tool) ? tool : 'default';
   const content = (entry.content || '').trim();
   const cid     = 'ec-' + entry.id;
   const needsExp = content.length > 100;
 
   card.innerHTML = `
-    <div class="entry-left">
-      <span class="tool-tag ${tClass}">${tool}</span>
-      <span class="entry-time">${fmtTime(entry.ts)}</span>
+    <div class="e-left">
+      <span class="tool-tag ${tClass}" title="${esc(tool)}">${esc(toolShort)}</span>
+      <span class="e-time">${fmtTime(entry.ts)}</span>
     </div>
-    <div class="entry-mid">
-      <div class="entry-summary">${esc(entry.summary || '')}</div>
+    <div class="e-mid">
+      <div class="e-summary">${esc(entry.summary || '')}</div>
       ${content
-        ? `<div class="entry-content" id="${cid}">${esc(content)}</div>
+        ? `<div class="e-content" id="${cid}">${esc(content)}</div>
            ${needsExp ? `<button class="expand-btn" onclick="toggleExp('${cid}',this)">▾ show more</button>` : ''}`
         : ''}
     </div>
-    <div class="token-reduction">
+    <div class="e-right">
       <span class="tok-before">${vTok} tok</span>
       <span class="tok-after">${sTok} tok</span>
-      <span class="tok-pct ${ePct===0?'zero':''}">${ePct > 0 ? '-'+ePct+'%' : '—'}</span>
-      <span class="tok-id">[${entry.id}]</span>
+      <span class="tok-pct ${ePct <= 0 ? 'zero' : ''}">${ePct > 0 ? '-'+ePct+'%' : '—'}</span>
     </div>
   `;
 
-  if (isNew) setTimeout(() => card.classList.remove('new-entry'), 600);
+  if (isNew) setTimeout(() => card.classList.remove('new'), 800);
 
-  // Insert newest entry at top of this session's entries
-  const entriesEl = document.getElementById('se-' + CSS.escape(sid));
-  entriesEl.insertBefore(card, entriesEl.firstChild);
+  const bodyEl = document.getElementById('se-' + safeId(sid));
+  bodyEl.insertBefore(card, bodyEl.firstChild);
 }
 
-// ── Update global stats ───────────────────────────────────────────────────────
+// ── Collapse ─────────────────────────────────────────────────────────────────
+function toggleSession(sid) {
+  const gid = 'sg-' + safeId(sid);
+  const el = document.getElementById(gid);
+  if (!el) return;
+  el.classList.toggle('collapsed');
+  if (el.classList.contains('collapsed')) collapsedSessions.add(sid);
+  else collapsedSessions.delete(sid);
+}
+function toggleAllSessions() {
+  allCollapsed = !allCollapsed;
+  document.querySelectorAll('.session').forEach(el => {
+    const sid = el.id.replace(/^sg-/, '');
+    if (allCollapsed) { el.classList.add('collapsed'); collapsedSessions.add(sid); }
+    else              { el.classList.remove('collapsed'); collapsedSessions.delete(sid); }
+  });
+  document.getElementById('collapse-btn').textContent = allCollapsed ? '⇅ expand all' : '⇅ collapse all';
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────────────
 function updateGlobalStats() {
   const totalEntries = [...sessions.values()].reduce((s,v) => s + v.entries.length, 0);
-  const pct = totalVerbose > 0
-    ? Math.round((1 - totalStored / totalVerbose) * 100) + '%'
-    : '—';
-
+  const pct = totalVerbose > 0 ? Math.round((1 - totalStored / totalVerbose) * 100) + '%' : '—';
   document.getElementById('gs-entries').textContent = totalEntries;
   document.getElementById('gs-verbose').textContent = totalVerbose;
   document.getElementById('gs-stored').textContent  = totalStored;
@@ -681,74 +703,78 @@ function updateGlobalStats() {
   document.getElementById('gs-pct').textContent     = pct;
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
 function updateSidebar() {
-  // Sessions
   const sbSess = document.getElementById('sb-sessions');
   if (sessions.size === 0) {
-    sbSess.innerHTML = '<div style="color:var(--muted);font-size:12px">No sessions yet</div>';
+    sbSess.innerHTML = '<div style="color:var(--fg-muted);font-size:12px">No sessions yet</div>';
   } else {
     sbSess.innerHTML = [...sessions.entries()]
-      .sort((a,b) => new Date(b[1].firstTs) - new Date(a[1].firstTs))
+      .sort((a,b) => new Date(b[1].lastTs) - new Date(a[1].lastTs))
+      .slice(0, 12)
       .map(([sid, s]) => {
         const pct = s.verboseTokens > 0
           ? Math.round((1 - s.storedTokens / s.verboseTokens) * 100)
           : 0;
+        const lv = [...s.levels][0] || '—';
         return `
-          <div class="session-row">
+          <div class="tool-row" style="display:flex;flex-direction:column;gap:4px;align-items:stretch;padding:8px 0;cursor:pointer" onclick="scrollToSession('${escapeJs(sid)}')">
             <div style="display:flex;justify-content:space-between;align-items:center">
-              <div class="s-id">${sid.slice(0,18)}…</div>
-              <button class="s-del" onclick="deleteSession('${sid.replace(/'/g,"\\'")}')">🗑 Delete</button>
+              <span style="font-family:var(--font-mono);font-size:10px;color:var(--fg-muted)">${esc(sid).slice(0,10)}…</span>
+              <span class="chip lv-${esc(lv)}" style="padding:1px 8px;font-size:10px">${esc(lv)}</span>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
-              <span class="s-red">-${pct}%</span>
-              <span class="s-det">${s.verboseTokens} → ${s.storedTokens} tok</span>
+            <div style="display:flex;justify-content:space-between;font-size:11px">
+              <span style="color:var(--lavender-ink);font-family:var(--font-mono);font-weight:600">-${pct}%</span>
+              <span style="color:var(--fg-muted)">${s.entries.length} · ${s.savedTokens} saved</span>
             </div>
-            <div class="s-det" style="margin-top:2px">${s.entries.length} entries · saved ${s.savedTokens} tok</div>
           </div>
         `;
       }).join('');
   }
 
-  // Tools
   const sbTools = document.getElementById('sb-tools');
   const tc = Object.entries(toolCounts).sort((a,b) => b[1]-a[1]);
   if (tc.length === 0) {
-    sbTools.innerHTML = '<div style="color:var(--muted);font-size:12px">No entries yet</div>';
+    sbTools.innerHTML = '<div style="color:var(--fg-muted);font-size:12px">No entries yet</div>';
   } else {
-    const tClass = t => ['Write','Edit','MultiEdit','Read','Bash'].includes(t) ? t : 'default';
+    const tClass = t => ['Write','Edit','MultiEdit','Read','Bash','Glob','Grep'].includes(t) ? t : 'default';
     sbTools.innerHTML = tc.map(([t,c]) =>
       `<div class="tool-row">
-        <span class="tool-tag ${tClass(t)}">${t}</span>
+        <span class="tool-tag ${tClass(t)}">${esc(t)}</span>
         <span class="tool-count">${c}</span>
       </div>`
     ).join('');
   }
 
-  // Stats for clients
   fetch('/stats').then(r=>r.json()).then(s=>{
-    document.getElementById('gs-clients').textContent = s.active_clients + ' active client' + (s.active_clients===1?'':'s');
-    if (s.log_path) document.getElementById('sb-logpath').textContent = s.log_path;
+    document.getElementById('gs-clients').textContent =
+      s.active_clients + ' active client' + (s.active_clients===1 ? '' : 's');
   }).catch(()=>{});
 }
 
-// ── Delete session ────────────────────────────────────────────────────────────
+function scrollToSession(sid) {
+  const el = document.getElementById('sg-' + safeId(sid));
+  if (!el) return;
+  el.classList.remove('collapsed');
+  collapsedSessions.delete(sid);
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Delete ───────────────────────────────────────────────────────────────────
 function deleteSession(sid) {
   const s = sessions.get(sid);
-  const label = s ? `${s.entries.length} entries from session ${sid.slice(0,12)}…` : `session ${sid.slice(0,12)}…`;
-  if (!confirm(`Delete ${label}?\n\nThis removes them from the JSONL log file on disk permanently.`)) return;
+  const label = s ? `${s.entries.length} entries from session ${sid.slice(0,10)}…` : `session ${sid.slice(0,10)}…`;
+  if (!confirm(`Delete ${label}?\n\nPermanent.`)) return;
   fetch('/delete-session?id=' + encodeURIComponent(sid), { method: 'POST' })
     .then(r => { if (!r.ok) throw new Error(r.status); })
     .catch(e => alert('Delete failed: ' + e));
 }
 
 function removeSessionFromUI(sid) {
-  // Remove from state
   const s = sessions.get(sid);
   if (s) {
     s.entries.forEach(e => {
-      const vTok  = Math.ceil((e.verbose_len || 0) / 4);
-      const sTok  = Math.ceil((e.stored_len  || 0) / 4);
+      const vTok = Math.ceil((e.verbose_len || 0) / 4);
+      const sTok = Math.ceil((e.stored_len  || 0) / 4);
       totalVerbose -= vTok;
       totalStored  -= sTok;
       totalSaved   -= (e.tokens_saved || 0);
@@ -756,54 +782,40 @@ function removeSessionFromUI(sid) {
     });
     sessions.delete(sid);
   }
-  // Remove DOM group
-  const gid = 'sg-' + CSS.escape(sid);
-  const group = document.getElementById(gid);
-  if (group) group.remove();
-  // Show empty if no sessions left
-  if (sessions.size === 0) {
-    streamEl.innerHTML = '';
-    streamEl.appendChild(emptyEl);
-  }
+  const el = document.getElementById('sg-' + safeId(sid));
+  if (el) el.remove();
+  if (sessions.size === 0) { streamEl.innerHTML = ''; streamEl.appendChild(emptyEl); }
   updateGlobalStats();
   updateSidebar();
   updateStorage();
 }
 
-// ── Storage stats ──────────────────────────────────────────────────────────────
+// ── Storage ──────────────────────────────────────────────────────────────────
 function updateStorage() {
   fetch('/stats').then(r=>r.json()).then(s=>{
     const bytes = s.file_size || 0;
     const entries = s.total_entries || 0;
-    const kb = (bytes / 1024).toFixed(1);
-    const mb = (bytes / 1024 / 1024).toFixed(2);
     const display = bytes < 1024 ? bytes + ' B'
-                  : bytes < 1024*1024 ? kb + ' KB'
-                  : mb + ' MB';
-    const perEntry = entries > 0 ? Math.round(bytes / entries) : 300;
-    // bar: show relative fullness — map 0–5MB to 0–100%
-    const barPct = Math.min(100, (bytes / (5 * 1024 * 1024)) * 100).toFixed(1);
-
+                  : bytes < 1024*1024 ? (bytes/1024).toFixed(1) + ' KB'
+                  : (bytes/1024/1024).toFixed(2) + ' MB';
+    const perEntry = entries > 0 ? Math.round(bytes/entries) : 300;
+    const barPct = Math.min(100, (bytes / (5*1024*1024))*100).toFixed(1);
     const el = id => document.getElementById(id);
-    if (el('st-size'))    el('st-size').textContent   = display;
+    if (el('st-size'))    el('st-size').textContent    = display;
     if (el('st-entries')) el('st-entries').textContent = entries;
-    if (el('st-per'))     el('st-per').textContent    = '~' + perEntry + ' bytes';
-    if (el('st-bar'))     el('st-bar').style.width    = barPct + '%';
-    if (s.log_path)       el('sb-logpath').textContent = s.log_path;
-    if (el('gs-clients')) el('gs-clients').textContent = s.active_clients + ' active client' + (s.active_clients===1?'':'s');
+    if (el('st-per'))     el('st-per').textContent     = '~' + perEntry + ' B';
+    if (el('st-bar'))     el('st-bar').style.width     = barPct + '%';
   }).catch(()=>{});
 }
 
-// ── Auto-scroll ───────────────────────────────────────────────────────────────
+// ── Misc ─────────────────────────────────────────────────────────────────────
 function toggleAutoScroll() {
   autoScroll = !autoScroll;
   const btn = document.getElementById('autoscroll-btn');
-  btn.textContent = autoScroll ? '↑ Auto-scroll ON' : '↓ Auto-scroll';
-  btn.style.color = autoScroll ? 'var(--green)' : '';
-  btn.style.borderColor = autoScroll ? 'rgba(63,185,80,.5)' : '';
+  btn.textContent = autoScroll ? '↑ auto-scroll on' : '↓ auto-scroll';
+  btn.className = autoScroll ? 'primary' : '';
 }
 
-// ── Clear ─────────────────────────────────────────────────────────────────────
 function clearAll() {
   sessions.clear();
   Object.keys(toolCounts).forEach(k => delete toolCounts[k]);
@@ -812,39 +824,36 @@ function clearAll() {
   streamEl.appendChild(emptyEl);
   updateGlobalStats();
   updateSidebar();
-  updateStorage();
 }
 
 function clearLog() {
-  if (!confirm('Clear all memory entries?')) return;
+  if (!confirm('Clear all memories?')) return;
   fetch('/clear', { method: 'POST' });
 }
 
-// ── Utils ─────────────────────────────────────────────────────────────────────
 function fmtTime(iso) {
   try {
     const d = new Date(iso);
     return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  } catch(_){ return iso; }
+  } catch(_) { return iso; }
 }
 
 function esc(s) {
   return String(s)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+function escapeJs(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function safeId(s)   { return String(s).replace(/[^a-zA-Z0-9_-]/g,'_'); }
 
 function toggleExp(id, btn) {
   const el = document.getElementById(id);
-  const exp = el.classList.toggle('exp');
+  const exp = el.classList.toggle('expanded');
   btn.textContent = exp ? '▴ show less' : '▾ show more';
 }
 
-// Initial storage fetch
 updateStorage();
-setInterval(updateStorage, 15000); // refresh every 15s
+setInterval(updateStorage, 15000);
 </script>
 </body>
 </html>

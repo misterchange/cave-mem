@@ -66,7 +66,9 @@ process.stdin.on('end', () => {
 
     const toolName   = event.tool_name || event.toolName || 'unknown';
     const toolInput  = event.tool_input || event.toolInput || {};
-    const toolResult = event.tool_result ?? event.toolResult ?? event.output ?? '';
+    const toolResult = event.tool_response ?? event.tool_result
+                    ?? event.toolResponse  ?? event.toolResult
+                    ?? event.output ?? '';
 
     const SKIP_TOOLS = new Set(['TodoRead', 'TodoWrite']);
     if (SKIP_TOOLS.has(toolName)) process.exit(0);
@@ -87,23 +89,28 @@ process.stdin.on('end', () => {
       ? toolResult
       : JSON.stringify(toolResult);
 
-    const verboseLen    = (summary + resultText).length;
-    const compressed    = compress(resultText, level);
-    const compressedLen = (summary + compressed).length;
-    const savedTokens   = tokens(resultText) - tokens(compressed);
+    const compressedSummary = compress(summary, level);
+    const compressed        = compress(resultText, level);
+    const verboseLen        = (summary + resultText).length;
+    const compressedLen     = (compressedSummary + compressed).length;
+    const savedTokens       = tokens(summary + resultText) - tokens(compressedSummary + compressed);
 
     const entry = {
       id:           Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       ts:           new Date().toISOString(),
       level,
       tool:         toolName,
-      summary:      compress(summary, level),
+      summary:      compressedSummary,
       content:      compressed,
       verbose_len:  verboseLen,
       stored_len:   compressedLen,
       tokens_saved: Math.max(0, savedTokens),
-      session_id:   process.env.CLAUDE_SESSION_ID || process.env.SESSION_ID || 'unknown',
-      cwd:          process.env.CLAUDE_CWD || process.cwd(),
+      session_id:   event.session_id
+                 || event.sessionId
+                 || process.env.CLAUDE_SESSION_ID
+                 || process.env.SESSION_ID
+                 || 'unknown',
+      cwd:          event.cwd || process.env.CLAUDE_CWD || process.cwd(),
     };
 
     const db = openDB();

@@ -19,7 +19,7 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { getCompressionLevel, claudeDir } = require('./cave-mem-config');
+const { getCompressionLevel, setCompressionLevel, claudeDir } = require('./cave-mem-config');
 const { openDB, searchMemories } = require('./cave-mem-db');
 
 const flagPath = path.join(claudeDir, '.cave-mem-active');
@@ -82,9 +82,11 @@ process.stdin.on('end', () => {
 
       if (mode === 'off') {
         try { fs.unlinkSync(flagPath); } catch (_) {}
+        setCompressionLevel('off');
       } else {
         fs.mkdirSync(claudeDir, { recursive: true });
         fs.writeFileSync(flagPath, mode);
+        setCompressionLevel(mode);
       }
     }
   } catch (_) {
