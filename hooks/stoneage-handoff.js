@@ -87,6 +87,37 @@ const GENERIC_FOLDERS = new Set([
 ]);
 
 function enrichSessionsWithTouches(db, sessionsMap) {
+  // FAST PATH: use the project_folder column baked at INSERT time.
+  // For each session, pick the mode (most common non-empty project_folder).
+  // Only fall back to path-scanning for sessions where no rows have it set
+  // (pre-migration data).
+  try {
+    const pfRows = db.prepare(
+      `SELECT session_id, project_folder, COUNT(*) AS c
+         FROM memories
+         WHERE project_folder IS NOT NULL AND project_folder != ''
+         GROUP BY session_id, project_folder`
+    ).all();
+    const bestBySid = new Map(); // sid -> { folder, count }
+    for (const r of pfRows) {
+      const cur = bestBySid.get(r.session_id);
+      if (!cur || r.c > cur.count) {
+        bestBySid.set(r.session_id, { folder: r.project_folder, count: r.c });
+      }
+    }
+    for (const [sid, best] of bestBySid) {
+      if (!sessionsMap.has(sid)) continue;
+      const s = sessionsMap.get(sid);
+      s.foldersTouched = new Map([[best.folder, best.count]]);
+    }
+  } catch (_) { /* column may not exist on very old DBs */ }
+
+  // SLOW PATH: path-scan only sessions that have no project_folder anywhere.
+  const missing = [...sessionsMap.keys()].filter(
+    sid => !sessionsMap.get(sid).foldersTouched
+  );
+  if (missing.length === 0) return;
+
   // Prefer RECENT work — take last 60 touches per session.
   const rows = db.prepare(
     `SELECT session_id, summary, ts
@@ -95,8 +126,10 @@ function enrichSessionsWithTouches(db, sessionsMap) {
        ORDER BY ts DESC`
   ).all();
 
+  const missingSet = new Set(missing);
   const pathsBySid = new Map();
   for (const r of rows) {
+    if (!missingSet.has(r.session_id)) continue;
     if (!sessionsMap.has(r.session_id)) continue;
     const bucket = pathsBySid.get(r.session_id) || [];
     if (bucket.length >= 60) continue; // cap per session

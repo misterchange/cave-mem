@@ -36,7 +36,8 @@ const SCHEMA = `
     stored_len   INTEGER DEFAULT 0,
     tokens_saved INTEGER DEFAULT 0,
     session_id   TEXT DEFAULT 'unknown',
-    cwd          TEXT DEFAULT ''
+    cwd          TEXT DEFAULT '',
+    project_folder TEXT DEFAULT ''
   );
   CREATE INDEX IF NOT EXISTS idx_ts      ON memories(ts);
   CREATE INDEX IF NOT EXISTS idx_session ON memories(session_id);
@@ -70,8 +71,21 @@ function openDB() {
   } catch (_) { /* best-effort */ }
   const db = new DatabaseSync(MEM_DB);
   db.exec(SCHEMA);
+  ensureProjectFolderColumn(db);
   migrateJSONL(db);
   return db;
+}
+
+// Ensure `project_folder` column exists on older DBs (additive migration).
+function ensureProjectFolderColumn(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(memories)").all();
+    const has = cols.some(c => c.name === 'project_folder');
+    if (!has) {
+      db.exec("ALTER TABLE memories ADD COLUMN project_folder TEXT DEFAULT ''");
+    }
+    db.exec("CREATE INDEX IF NOT EXISTS idx_project_folder ON memories(project_folder)");
+  } catch (_) { /* best-effort */ }
 }
 
 // ── JSONL → SQLite migration (one-time) ──────────────────────────────────────
@@ -122,13 +136,14 @@ function migrateJSONL(db) {
 function insertEntry(db, entry) {
   db.prepare(`
     INSERT OR REPLACE INTO memories
-      (id, ts, level, tool, summary, content, verbose_len, stored_len, tokens_saved, session_id, cwd)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, ts, level, tool, summary, content, verbose_len, stored_len,
+       tokens_saved, session_id, cwd, project_folder)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     entry.id, entry.ts, entry.level, entry.tool,
     entry.summary, entry.content,
     entry.verbose_len, entry.stored_len, entry.tokens_saved,
-    entry.session_id, entry.cwd
+    entry.session_id, entry.cwd, entry.project_folder || ''
   );
 }
 

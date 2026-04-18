@@ -96,6 +96,30 @@ process.stdin.on('end', () => {
     const compressedLen     = (compressedSummary + compressed).length;
     const savedTokens       = tokens(summary + resultText) - tokens(compressedSummary + compressed);
 
+    const cwdVal = event.cwd || process.env.CLAUDE_CWD || process.cwd();
+
+    // Detect project_folder: use the tool's target file path when available
+    // (Write/Edit/MultiEdit/Read) — that's where work actually happens.
+    // Fallback to cwd's folder name. Strips generic ancestors.
+    const GENERIC = new Set([
+      'Users','home','nuweb','Nitin','Nitins','src','Desktop','Documents',
+      'Projects','repos','workspace','code','AppData','Local','Roaming',
+      'Temp','tmp','var','usr','opt','dev','node_modules','github','.git',
+      '.claude','C:','D:','E:',
+    ]);
+    const pickProjectFolder = (filePath, cwd) => {
+      const tryPath = (p) => {
+        if (!p) return null;
+        const parts = String(p).split(/[\\\/]/).filter(
+          x => x && !/^[a-zA-Z]:$/.test(x) && !GENERIC.has(x) && !x.startsWith('.')
+        );
+        return parts.length ? parts[0] : null; // first meaningful folder
+      };
+      return tryPath(filePath) || tryPath(cwd) || 'local';
+    };
+    const targetFile = toolInput.file_path || toolInput.path || '';
+    const projectFolder = pickProjectFolder(targetFile, cwdVal);
+
     const entry = {
       id:           Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       ts:           new Date().toISOString(),
@@ -111,7 +135,8 @@ process.stdin.on('end', () => {
                  || process.env.CLAUDE_SESSION_ID
                  || process.env.SESSION_ID
                  || 'unknown',
-      cwd:          event.cwd || process.env.CLAUDE_CWD || process.cwd(),
+      cwd:          cwdVal,
+      project_folder: projectFolder,
     };
 
     const db = openDB();
