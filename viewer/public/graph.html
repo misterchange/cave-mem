@@ -210,13 +210,18 @@
           Copy this URL into any AI coding assistant. The AI will fetch full
           cross-session context in compressed form — no re-exploring needed.
         </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">📁 LOCAL FILE (no server needed)</div>
+        <div class="handoff-url" onclick="copyText(document.getElementById('handoff-file').textContent)" title="Click to copy file path">
+          <span id="handoff-file">loading…</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px">🌐 URL (server running)</div>
         <div class="handoff-url" onclick="copyHandoffUrl()" title="Click to copy">
           <span id="handoff-link">http://localhost:37778/handoff</span>
         </div>
         <div class="hint">
           <strong>Use it like this:</strong><br>
           <code style="color:var(--orange);font-size:10px">
-            "Read http://localhost:37778/handoff and use as context for this project."
+            "Read &lt;path-or-url&gt; and use as context for this project."
           </code>
           <br>Works with Cursor, Windsurf, Claude Code, Copilot Chat, ChatGPT.
         </div>
@@ -385,6 +390,12 @@ function togglePhysics() {
 }
 
 document.getElementById('handoff-link').textContent = location.origin + '/handoff';
+
+// Fetch + trigger a write so file always exists
+fetch('/handoff').then(() => fetch('/handoff-path').then(r=>r.json()).then(p => {
+  document.getElementById('handoff-file').textContent = p.handoff_md;
+}));
+
 loadGraph();
 </script>
 
