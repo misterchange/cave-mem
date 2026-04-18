@@ -113,6 +113,204 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ── Graph data (nodes + edges) ─────────────────────────────────────────────
+  if (url === '/graph-data') {
+    const sessionFilter = params.get('session'); // optional: filter to 1 session
+    const where = sessionFilter ? 'WHERE session_id = ?' : '';
+    const args  = sessionFilter ? [sessionFilter] : [];
+
+    const entries = db.prepare(
+      `SELECT id, ts, tool, summary, content, session_id, cwd,
+              verbose_len, stored_len, tokens_saved
+         FROM memories ${where}
+         ORDER BY ts ASC`
+    ).all(...args);
+
+    // Build nodes: sessions + unique file paths
+    const sessions = new Map();  // sid → { count, tokensSaved, firstTs }
+    const files    = new Map();  // path → { count, sessions:Set, tool }
+    const edges    = [];         // { from, to, value }
+
+    // Helper: extract file path from memory summary
+    const extractPath = (e) => {
+      if (['Write','Edit','MultiEdit','Read'].includes(e.tool)) {
+        const m = e.summary.match(/\S+[\\\/][\S]+/);
+        return m ? m[0].replace(/[\.\,\;\:]+$/, '') : null;
+      }
+      return null;
+    };
+
+    for (const e of entries) {
+      const sid = e.session_id;
+      if (!sessions.has(sid)) {
+        sessions.set(sid, { count: 0, tokensSaved: 0, firstTs: e.ts, cwd: e.cwd });
+      }
+      const s = sessions.get(sid);
+      s.count        += 1;
+      s.tokensSaved  += e.tokens_saved || 0;
+
+      const fpath = extractPath(e);
+      if (fpath) {
+        if (!files.has(fpath)) {
+          files.set(fpath, { count: 0, sessions: new Set(), tool: e.tool });
+        }
+        const f = files.get(fpath);
+        f.count += 1;
+        f.sessions.add(sid);
+      }
+    }
+
+    // Build vis-network payload
+    const nodes = [];
+    const colors = { session: '#58a6ff', file: '#3fb950', shared: '#f0883e' };
+
+    for (const [sid, s] of sessions) {
+      nodes.push({
+        id: 'S:' + sid,
+        label: sid.slice(0, 12) + (sid.length > 12 ? '…' : ''),
+        group: 'session',
+        value: s.count,
+        title: `Session ${sid}\n${s.count} entries\n${s.tokensSaved} tokens saved\n${s.cwd || ''}`,
+        color: { background: '#1f6feb', border: '#58a6ff' },
+        shape: 'dot',
+      });
+    }
+
+    for (const [fp, f] of files) {
+      const shared = f.sessions.size > 1;
+      const short  = fp.split(/[\\\/]/).pop();
+      nodes.push({
+        id: 'F:' + fp,
+        label: short,
+        group: shared ? 'shared-file' : 'file',
+        value: f.count,
+        title: `${fp}\n${f.count} touches\n${f.sessions.size} session(s): ${[...f.sessions].map(s=>s.slice(0,8)).join(', ')}`,
+        color: shared
+          ? { background: '#c16c1a', border: '#f0883e' }
+          : { background: '#1f6f31', border: '#3fb950' },
+        shape: 'square',
+      });
+
+      // edge: session → file (one per session touching this file)
+      for (const sid of f.sessions) {
+        edges.push({
+          from: 'S:' + sid,
+          to:   'F:' + fp,
+          value: f.count,
+          color: { color: '#30363d', opacity: 0.6 },
+        });
+      }
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      nodes, edges,
+      stats: {
+        sessions: sessions.size,
+        files:    files.size,
+        shared_files: [...files.values()].filter(f => f.sessions.size > 1).length,
+        entries:  entries.length,
+      },
+    }));
+    return;
+  }
+
+  // ── Handoff markdown dump (THE copy-paste URL) ─────────────────────────────
+  if (url === '/handoff' || url === '/handoff.md' || url === '/handoff.txt') {
+    const sessionFilter = params.get('session');
+    const limit         = parseInt(params.get('limit') || '100', 10);
+
+    const where = sessionFilter ? 'WHERE session_id = ?' : '';
+    const args  = sessionFilter ? [sessionFilter] : [];
+
+    const entries = db.prepare(
+      `SELECT * FROM memories ${where} ORDER BY ts DESC LIMIT ?`
+    ).all(...args, limit);
+
+    // Group by session
+    const bySession = new Map();
+    for (const e of entries.reverse()) {
+      if (!bySession.has(e.session_id)) bySession.set(e.session_id, []);
+      bySession.get(e.session_id).push(e);
+    }
+
+    // File touch frequency across all
+    const fileTouches = new Map();
+    for (const e of entries) {
+      if (['Write','Edit','MultiEdit','Read'].includes(e.tool)) {
+        const m = e.summary.match(/\S+[\\\/][\S]+/);
+        if (m) {
+          const p = m[0];
+          fileTouches.set(p, (fileTouches.get(p) || 0) + 1);
+        }
+      }
+    }
+    const topFiles = [...fileTouches.entries()]
+      .sort((a,b) => b[1]-a[1])
+      .slice(0, 15);
+
+    const now = new Date().toISOString();
+    let md = `# cave-mem handoff\n\n`;
+    md += `**Generated:** ${now}\n`;
+    md += `**Source DB:** \`${MEM_DB}\`\n`;
+    md += `**Scope:** ${sessionFilter ? `session ${sessionFilter}` : `all sessions (last ${limit} entries)`}\n\n`;
+    md += `Paste this file into any AI coding assistant (Cursor, Windsurf, Claude Code, `;
+    md += `Copilot Chat, etc.) to hand over full working context from previous sessions.\n\n`;
+    md += `---\n\n`;
+
+    md += `## Overview\n\n`;
+    md += `- **Sessions in this handoff:** ${bySession.size}\n`;
+    md += `- **Total memories:** ${entries.length}\n`;
+    md += `- **Unique files touched:** ${fileTouches.size}\n`;
+    md += `- **Compression:** caveman-style (${entries[0]?.level || 'full'})\n\n`;
+
+    md += `## Most-touched files\n\n`;
+    for (const [fp, count] of topFiles) {
+      md += `- \`${fp}\` — ${count} touches\n`;
+    }
+    md += `\n---\n\n`;
+
+    md += `## Sessions\n\n`;
+    for (const [sid, evs] of bySession) {
+      const cwd = evs[0]?.cwd || '';
+      md += `### Session \`${sid}\`\n\n`;
+      md += `- **cwd:** \`${cwd}\`\n`;
+      md += `- **entries:** ${evs.length}\n`;
+      md += `- **time range:** ${evs[0].ts} → ${evs[evs.length-1].ts}\n\n`;
+
+      md += `| # | time | tool | action |\n|---|------|------|--------|\n`;
+      for (const e of evs) {
+        const t = e.ts.slice(11, 19);
+        const summary = e.summary.replace(/\|/g, '\\|').slice(0, 80);
+        md += `| \`${e.id}\` | ${t} | ${e.tool} | ${summary} |\n`;
+      }
+      md += `\n`;
+    }
+
+    md += `---\n\n## Detailed memories (compressed)\n\n`;
+    for (const e of entries.slice(0, 50)) {
+      md += `### [mem:${e.id}] ${e.tool} · ${e.ts}\n`;
+      md += `**session:** \`${e.session_id}\` · **saved:** ${e.tokens_saved} tok\n\n`;
+      md += `${e.summary}\n\n`;
+      if (e.content && e.content.trim()) {
+        md += '```\n' + e.content.slice(0, 400) + '\n```\n\n';
+      }
+    }
+
+    md += `---\n\n`;
+    md += `## Instructions to receiving AI\n\n`;
+    md += `1. Treat each \`[mem:<id>]\` as an observation from a prior session\n`;
+    md += `2. The files listed under "Most-touched files" are the project's working surface\n`;
+    md += `3. Content is compressed (caveman style) — expand as needed\n`;
+    md += `4. If a user question maps to a mem id, cite it: \`[mem:${entries[0]?.id||'xxx'}]\`\n`;
+    md += `5. Check \`${MEM_DB}\` via the cave-mem viewer for live updates\n\n`;
+    md += `*Generated by cave-mem · https://github.com/misterchange/cave-mem*\n`;
+
+    res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+    res.end(md);
+    return;
+  }
+
   // ── Delete session ─────────────────────────────────────────────────────────
   if (url === '/delete-session' && req.method === 'POST') {
     const sid = params.get('id');

@@ -1,7 +1,7 @@
 {
   "name": "cave-mem",
-  "version": "1.2.0",
-  "description": "Combined caveman-style compression + persistent cross-session memory backed by SQLite. Cuts output tokens ~75%, stores memories in compressed format, full-text search across sessions — double savings, single plugin.",
+  "version": "1.3.0",
+  "description": "Combined caveman-style compression + persistent cross-session memory backed by SQLite. Cuts output tokens ~75%, stores memories compressed, FTS across sessions, interactive graph viz + copy-paste AI handoff URL so any AI coder (Cursor/Windsurf/Claude Code/ChatGPT) gets full project context instantly.",
   "author": {
     "name": "cave-mem contributors"
   },
