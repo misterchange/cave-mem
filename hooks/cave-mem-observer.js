@@ -15,6 +15,7 @@ const fs   = require('fs');
 const path = require('path');
 const { getCompressionLevel, claudeDir } = require('./cave-mem-config');
 const { openDB, insertEntry } = require('./cave-mem-db');
+const { writeAllHandoffs }    = require('./cave-mem-handoff');
 
 const flagPath = path.join(claudeDir, '.cave-mem-active');
 
@@ -115,6 +116,22 @@ process.stdin.on('end', () => {
 
     const db = openDB();
     insertEntry(db, entry);
+
+    // Regenerate handoff .md files on disk — always-fresh context for AI handoff.
+    // Throttled to max once every 3 seconds to keep tool-call overhead near-zero.
+    try {
+      const stampPath = require('path').join(
+        require('./cave-mem-config').claudeDir, '.cave-mem-handoff-stamp'
+      );
+      const now  = Date.now();
+      let last   = 0;
+      try { last = parseInt(fs.readFileSync(stampPath, 'utf8'), 10) || 0; } catch (_) {}
+      if (now - last > 3000) {
+        fs.writeFileSync(stampPath, String(now));
+        writeAllHandoffs(db, { limit: 200, onlySession: entry.session_id });
+      }
+    } catch (_) { /* handoff write is best-effort */ }
+
     db.close();
 
   } catch (_) {

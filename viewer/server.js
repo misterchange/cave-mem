@@ -19,9 +19,11 @@ const path = require('path');
 
 const PORT = process.env.PORT || 37778;
 
-// Load shared DB module (hooks dir is sibling of viewer dir)
+// Load shared DB + handoff modules (hooks dir is sibling of viewer dir)
 const { openDB, loadRecent, searchMemories, deleteSession, getStats, MEM_DB } =
   require('../hooks/cave-mem-db');
+const { buildSessionLabels: sharedBuildLabels, writeAllHandoffs } =
+  require('../hooks/cave-mem-handoff');
 
 const db = openDB();
 
