@@ -1,13 +1,13 @@
-# cave-mem
+# stoneage
 
-> **Caveman compression + persistent memory — one plugin, double savings.**
+> **Stoneage compression + persistent memory — one plugin, double savings.**
 
-cave-mem combines two best-in-class Claude Code plugins into a single, integrated experience:
+stoneage combines two best-in-class Claude Code plugins into a single, integrated experience:
 
-- **[caveman](https://github.com/JuliusBrussee/caveman)** — cuts Claude's output tokens by ~75% by making it respond in terse, compressed language while keeping full technical accuracy
+- **[stoneage](https://github.com/JuliusBrussee/stoneage)** — cuts Claude's output tokens by ~75% by making it respond in terse, compressed language while keeping full technical accuracy
 - **[claude-mem](https://github.com/thedotmack/claude-mem)** — persists context and observations across sessions so Claude remembers your project between conversations
 
-Running both separately costs you their combined context tokens on every session start. cave-mem deduplicates the shared preamble and stores memories *in caveman-compressed format*, giving you **~35% smaller combined context injection** vs naively running both.
+Running both separately costs you their combined context tokens on every session start. stoneage deduplicates the shared preamble and stores memories *in stoneage-compressed format*, giving you **~35% smaller combined context injection** vs naively running both.
 
 **v1.2.0** — Memory storage upgraded from JSONL to **SQLite** (Node 22 built-in `node:sqlite`, zero npm deps). Brings full-text search (FTS5), per-session deletion, indexed queries. A live real-time viewer shows every captured memory with its per-entry token reduction.
 
@@ -17,14 +17,14 @@ Running both separately costs you their combined context tokens on every session
 
 ```bash
 # Claude Code plugin marketplace
-claude plugin marketplace add misterchange/cave-mem
-claude plugin install cave-mem
+claude plugin marketplace add misterchange/stoneage
+claude plugin install stoneage
 ```
 
 Or inside a Claude Code session:
 ```
-/plugin marketplace add misterchange/cave-mem
-/plugin install cave-mem
+/plugin marketplace add misterchange/stoneage
+/plugin install stoneage
 ```
 
 **Requirements:** Node.js **≥ 22** (for built-in `node:sqlite`), Claude Code (any recent version). Zero npm dependencies.
@@ -35,13 +35,13 @@ Or inside a Claude Code session:
 
 | Command | Effect |
 |---------|--------|
-| `/cave-mem` | Activate at default level (full) |
-| `/cave-mem lite` | ~30% token reduction, high readability |
-| `/cave-mem full` | ~75% token reduction, full accuracy *(default)* |
-| `/cave-mem ultra` | ~90% token reduction, maximum brevity |
-| `/cave-mem off` | Disable cave-mem for this session |
-| `/cave-mem search <query>` | Search past session memories |
-| `stop cave-mem` | Deactivate via natural language |
+| `/stoneage` | Activate at default level (full) |
+| `/stoneage lite` | ~30% token reduction, high readability |
+| `/stoneage full` | ~75% token reduction, full accuracy *(default)* |
+| `/stoneage ultra` | ~90% token reduction, maximum brevity |
+| `/stoneage off` | Disable stoneage for this session |
+| `/stoneage search <query>` | Search past session memories |
+| `stop stoneage` | Deactivate via natural language |
 | `normal mode` | Deactivate via natural language |
 
 ### Compression levels
@@ -54,12 +54,12 @@ Or inside a Claude Code session:
 
 ### Memory
 
-cave-mem stores session observations compressed at your active level in a **SQLite** database at `~/.claude/cave-mem-memory.db`. The same memory takes fewer tokens to store *and* fewer tokens to inject back — savings compound every session.
+stoneage stores session observations compressed at your active level in a **SQLite** database at `~/.claude/stoneage-memory.db`. The same memory takes fewer tokens to store *and* fewer tokens to inject back — savings compound every session.
 
 - **Auto-captured:** tool results, file edits, errors + fixes, key decisions
 - **Cite memories:** prefix with `[mem:<id>]` when drawing on past sessions
 - **Exclude sensitive content:** wrap in `<private>…</private>`
-- **Full-text search:** `/cave-mem search <query>` hits an FTS5 index across every stored entry
+- **Full-text search:** `/stoneage search <query>` hits an FTS5 index across every stored entry
 - **Per-session delete:** remove any session's entries from the live viewer (or `POST /delete-session?id=<sid>`)
 - **Storage footprint:** ~300 bytes per entry. 10,000 entries ≈ **3 MB**. No cap.
 
@@ -75,11 +75,11 @@ npm run viewer
 - Per-entry token reduction column (before strikethrough → after → −XX%)
 - Always-visible **Delete session** button per session
 - Sidebar: tool breakdown, storage panel (DB path, size, engine)
-- Auto-migrates any pre-existing `cave-mem-memory.jsonl` to SQLite on first boot
+- Auto-migrates any pre-existing `stoneage-memory.jsonl` to SQLite on first boot
 
 ### Persistent config
 
-To make a level permanent across sessions, create `~/.claude/.cave-mem-config.json`:
+To make a level permanent across sessions, create `~/.claude/.stoneage-config.json`:
 
 ```json
 { "compression": "full" }
@@ -89,48 +89,48 @@ To make a level permanent across sessions, create `~/.claude/.cave-mem-config.js
 
 ## How it works
 
-### Without cave-mem (running both separately)
+### Without stoneage (running both separately)
 
 ```
 Session start
-  ├── caveman-activate.js   → emits caveman rules       (~1,847 chars)
+  ├── stoneage-activate.js   → emits stoneage rules       (~1,847 chars)
   └── claude-mem hook       → emits memory context      (~1,847 chars)
                                                  Total: ~3,694 chars
 ```
 
-### With cave-mem
+### With stoneage
 
 ```
 Session start
-  └── cave-mem-activate.js  → emits combined context    (~2,379 chars)
+  └── stoneage-activate.js  → emits combined context    (~2,379 chars)
                                                  Total: ~2,379 chars
                                                 Saved:  ~1,315 chars (35%)
 ```
 
 The saving comes from:
-1. A single shared `CAVE-MEM MODE ACTIVE` header instead of two separate headers
+1. A single shared `STONEAGE MODE ACTIVE` header instead of two separate headers
 2. Memory entries stored at the active compression level — savings at write time AND read time
-3. One flag file (`.cave-mem-active`) instead of two separate state files
+3. One flag file (`.stoneage-active`) instead of two separate state files
 
 ### Hook architecture
 
 ```
 SessionStart
-  └── cave-mem-activate.js
-        ├── reads ~/.claude/.cave-mem-config.json  (compression level)
-        ├── writes ~/.claude/.cave-mem-active      (runtime flag)
-        ├── loads caveman SKILL.md                 (single source of truth)
+  └── stoneage-activate.js
+        ├── reads ~/.claude/.stoneage-config.json  (compression level)
+        ├── writes ~/.claude/.stoneage-active      (runtime flag)
+        ├── loads stoneage SKILL.md                 (single source of truth)
         ├── loads last 200 memories from SQLite    (context injection)
-        └── emits combined caveman + memory context
+        └── emits combined stoneage + memory context
 
 UserPromptSubmit
-  └── cave-mem-mode-tracker.js
-        ├── /cave-mem [lite|full|ultra] → updates flag
-        ├── /cave-mem search <q>        → SQLite FTS5 lookup, injects results
-        └── "stop cave-mem" / "normal mode" → removes flag
+  └── stoneage-mode-tracker.js
+        ├── /stoneage [lite|full|ultra] → updates flag
+        ├── /stoneage search <q>        → SQLite FTS5 lookup, injects results
+        └── "stop stoneage" / "normal mode" → removes flag
 
 PostToolUse  (async, non-blocking)
-  └── cave-mem-observer.js
+  └── stoneage-observer.js
         ├── compress(tool_result, active_level)
         └── INSERT INTO memories (SQLite)
 ```
@@ -163,21 +163,21 @@ tool fires → PostToolUse hook → compress → INSERT SQLite
 ## Project structure
 
 ```
-cave-mem/
+stoneage/
 ├── .claude-plugin/
 │   └── plugin.json              ← Claude Code plugin manifest
 ├── hooks/
-│   ├── cave-mem-activate.js     ← SessionStart hook (combined context)
-│   ├── cave-mem-mode-tracker.js ← UserPromptSubmit hook (+ FTS search)
-│   ├── cave-mem-observer.js     ← PostToolUse hook (INSERT into SQLite)
-│   ├── cave-mem-config.js       ← shared config reader/writer
-│   ├── cave-mem-db.js           ← shared SQLite open/schema/CRUD/FTS
-│   └── cave-mem-statusline.ps1  ← reads flag → outputs [CAVE-MEM:FULL] badge
+│   ├── stoneage-activate.js     ← SessionStart hook (combined context)
+│   ├── stoneage-mode-tracker.js ← UserPromptSubmit hook (+ FTS search)
+│   ├── stoneage-observer.js     ← PostToolUse hook (INSERT into SQLite)
+│   ├── stoneage-config.js       ← shared config reader/writer
+│   ├── stoneage-db.js           ← shared SQLite open/schema/CRUD/FTS
+│   └── stoneage-statusline.ps1  ← reads flag → outputs [STONEAGE:FULL] badge
 ├── viewer/
 │   ├── server.js                ← HTTP + SSE server, polls SQLite
 │   └── public/index.html        ← dark UI, real-time, per-entry reduction
 ├── skills/
-│   └── cave-mem/SKILL.md        ← /cave-mem slash command definition
+│   └── stoneage/SKILL.md        ← /stoneage slash command definition
 ├── tests/
 │   ├── test_baseline.py         ← isolation tests (run BEFORE install)
 │   ├── test_cave_mem.py         ← behaviour tests (run AFTER install)
@@ -191,16 +191,16 @@ cave-mem/
 
 | File | Purpose |
 |------|---------|
-| `.cave-mem-active` | runtime flag (contains active compression level) |
-| `.cave-mem-config.json` | optional persistent level override |
-| `cave-mem-memory.db` | SQLite database (memories + FTS index) |
-| `cave-mem-memory.jsonl.bak` | one-time backup created during JSONL → SQLite migration |
+| `.stoneage-active` | runtime flag (contains active compression level) |
+| `.stoneage-config.json` | optional persistent level override |
+| `stoneage-memory.db` | SQLite database (memories + FTS index) |
+| `stoneage-memory.jsonl.bak` | one-time backup created during JSONL → SQLite migration |
 
 ---
 
 ## Tests
 
-cave-mem ships with **47 tests** across two suites designed to prove what the system looks like before and after installation.
+stoneage ships with **47 tests** across two suites designed to prove what the system looks like before and after installation.
 
 ### Run all tests
 
@@ -211,7 +211,7 @@ python -m unittest discover -s tests -v
 # Baseline only (pre-install isolation checks)
 python -m unittest tests.test_baseline -v
 
-# cave-mem only (post-install behaviour)
+# stoneage only (post-install behaviour)
 python -m unittest tests.test_cave_mem -v
 
 # Full before/after report (generates files in tests/reports/)
@@ -220,31 +220,31 @@ python tests/run_report.py --phase both
 
 ### test_baseline.py — 17 tests (pre-install)
 
-Verifies the system is clean *before* cave-mem is installed — caveman and claude-mem are fully independent, no cross-wiring exists.
+Verifies the system is clean *before* stoneage is installed — stoneage and claude-mem are fully independent, no cross-wiring exists.
 
 | Test Class | What It Checks |
 |------------|----------------|
-| `TestCaveMemAbsent` | `plugin.json`, hooks, and `.cave-mem-active` flag do **not** exist |
-| `TestCavemanStandalone` | caveman `plugin.json` has no mention of claude-mem/cave-mem; activation output has no memory markers; flag written is `.caveman-active` not `.cave-mem-active`; mode tracker ignores `/cave-mem` commands |
-| `TestClaudeMemStandalone` | claude-mem `plugin.json` has no mention of caveman/cave-mem; `package.json` has no caveman dependency; plugin declares no cave-mem hooks |
-| `TestNoSharedState` | caveman skills have no cave-mem sub-skill; caveman hooks import no SQLite; claude-mem scripts do not read `.caveman-active` |
-| `TestBaselineTokenOutput` | Measures and records caveman-only activation output size as the baseline for efficiency comparisons |
+| `TestStoneageAbsent` | `plugin.json`, hooks, and `.stoneage-active` flag do **not** exist |
+| `TestStoneageStandalone` | stoneage `plugin.json` has no mention of claude-mem/stoneage; activation output has no memory markers; flag written is `.stoneage-active` not `.stoneage-active`; mode tracker ignores `/stoneage` commands |
+| `TestClaudeMemStandalone` | claude-mem `plugin.json` has no mention of stoneage/stoneage; `package.json` has no stoneage dependency; plugin declares no stoneage hooks |
+| `TestNoSharedState` | stoneage skills have no stoneage sub-skill; stoneage hooks import no SQLite; claude-mem scripts do not read `.stoneage-active` |
+| `TestBaselineTokenOutput` | Measures and records stoneage-only activation output size as the baseline for efficiency comparisons |
 
 **Expected result: all 17 pass** on any clean system.
 
 ### test_cave_mem.py — 30 tests (post-install)
 
-Verifies cave-mem's own behaviour after the plugin is created.
+Verifies stoneage's own behaviour after the plugin is created.
 
 | Test Class | What It Checks |
 |------------|----------------|
 | `TestPluginStructure` (8) | `plugin.json` exists, has correct `name`, declares `SessionStart` and `UserPromptSubmit` hooks pointing to the right scripts; all 3 hook files exist; `SKILL.md` exists |
-| `TestActivateHook` (9) | Exits 0; writes `.cave-mem-active` with a valid level; output contains `CAVE-MEM` marker, caveman rules, AND memory marker; `off` mode writes no flag; nudges statusline setup when missing; stays silent when statusline already configured |
-| `TestModeTrackerHook` (8) | `/cave-mem` defaults to `full`; `/cave-mem lite/full/ultra` writes correct level; `stop cave-mem` and `normal mode` remove the flag; unrelated prompts leave flag unchanged; `/cave-mem search` is a pass-through |
-| `TestTokenEfficiency` (2) | Combined output is not empty; combined output is strictly less than 2× caveman-alone (deduplication works) |
-| `TestFullLifecycle` (3) | Upgrading from a caveman-only home dir adds `.cave-mem-active`; mode changes persist across tracker calls; uninstall leaves no stale state |
+| `TestActivateHook` (9) | Exits 0; writes `.stoneage-active` with a valid level; output contains `STONEAGE` marker, stoneage rules, AND memory marker; `off` mode writes no flag; nudges statusline setup when missing; stays silent when statusline already configured |
+| `TestModeTrackerHook` (8) | `/stoneage` defaults to `full`; `/stoneage lite/full/ultra` writes correct level; `stop stoneage` and `normal mode` remove the flag; unrelated prompts leave flag unchanged; `/stoneage search` is a pass-through |
+| `TestTokenEfficiency` (2) | Combined output is not empty; combined output is strictly less than 2× stoneage-alone (deduplication works) |
+| `TestFullLifecycle` (3) | Upgrading from a stoneage-only home dir adds `.stoneage-active`; mode changes persist across tracker calls; uninstall leaves no stale state |
 
-**Expected result: all 30 pass** after cave-mem is installed.
+**Expected result: all 30 pass** after stoneage is installed.
 
 ### Before/after report output
 
@@ -254,7 +254,7 @@ python tests/run_report.py --phase both
 
 ```
 ========================================================================
-  cave-mem  |  BEFORE vs AFTER COMPARISON
+  stoneage  |  BEFORE vs AFTER COMPARISON
 ========================================================================
 
   SUMMARY
@@ -263,22 +263,22 @@ python tests/run_report.py --phase both
   Passed                      14        30       +16
   Failed/Errors                3         0        -3
 
-  [EFFICIENCY] caveman-only activation:  1,847 chars
-  [EFFICIENCY] cave-mem combined:        2,379 chars
+  [EFFICIENCY] stoneage-only activation:  1,847 chars
+  [EFFICIENCY] stoneage combined:        2,379 chars
   [EFFICIENCY] naive double would be:    3,694 chars
   [EFFICIENCY] savings vs naive double:  1,315 chars (35.3%)
 ========================================================================
 ```
 
-The 3 baseline failures in the "after" column are expected — they tested for the *absence* of cave-mem files, which are now present.
+The 3 baseline failures in the "after" column are expected — they tested for the *absence* of stoneage files, which are now present.
 
 ---
 
 ## Credits
 
-cave-mem stands on the shoulders of:
+stoneage stands on the shoulders of:
 
-- **caveman** by [Julius Brussee](https://github.com/JuliusBrussee/caveman) — output token compression
+- **stoneage** by [Julius Brussee](https://github.com/JuliusBrussee/stoneage) — output token compression
 - **claude-mem** by [Alex Newman](https://github.com/thedotmack/claude-mem) — persistent cross-session memory
 
 ---

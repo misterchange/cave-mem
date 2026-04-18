@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * cave-mem — Shared SQLite database module
+ * stoneage — Shared SQLite database module
  *
  * Uses Node.js built-in node:sqlite (Node 22+, zero npm deps).
  * Single source of truth for DB path, schema, and helpers.
  *
- * DB file: ~/.claude/cave-mem-memory.db
- * Auto-migrates existing cave-mem-memory.jsonl on first open.
+ * DB file: ~/.claude/stoneage-memory.db
+ * Auto-migrates existing stoneage-memory.jsonl on first open.
  */
 
 'use strict';
@@ -17,8 +17,11 @@ const os   = require('os');
 const { DatabaseSync } = require('node:sqlite');
 
 const claudeDir = path.join(os.homedir(), '.claude');
-const MEM_DB    = path.join(claudeDir, 'cave-mem-memory.db');
-const MEM_LOG   = path.join(claudeDir, 'cave-mem-memory.jsonl'); // legacy
+const MEM_DB    = path.join(claudeDir, 'stoneage-memory.db');
+const MEM_LOG   = path.join(claudeDir, 'stoneage-memory.jsonl'); // legacy
+// Backward-compat: pre-rebrand DB filename. If the new-name file doesn't yet
+// exist but the old one does, copy it on first open to preserve existing data.
+const LEGACY_MEM_DB = path.join(claudeDir, 'cave-mem-memory.db');
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 const SCHEMA = `
@@ -55,6 +58,16 @@ const SCHEMA = `
 // ── Open & initialise ─────────────────────────────────────────────────────────
 function openDB() {
   fs.mkdirSync(claudeDir, { recursive: true });
+  // Backward-compat: copy legacy cave-mem-memory.db → stoneage-memory.db
+  // on first run after rebrand, so existing memories are preserved.
+  try {
+    if (!fs.existsSync(MEM_DB) && fs.existsSync(LEGACY_MEM_DB)) {
+      fs.copyFileSync(LEGACY_MEM_DB, MEM_DB);
+      process.stderr.write(
+        `[stoneage] Migrated legacy DB: ${LEGACY_MEM_DB} → ${MEM_DB}\n`
+      );
+    }
+  } catch (_) { /* best-effort */ }
   const db = new DatabaseSync(MEM_DB);
   db.exec(SCHEMA);
   migrateJSONL(db);
@@ -99,7 +112,7 @@ function migrateJSONL(db) {
 
     // Keep JSONL as backup (renamed)
     try { fs.renameSync(MEM_LOG, MEM_LOG + '.bak'); } catch (_) {}
-    process.stderr.write(`[cave-mem] Migrated ${lines.length} entries: JSONL → SQLite\n`);
+    process.stderr.write(`[stoneage] Migrated ${lines.length} entries: JSONL → SQLite\n`);
   } catch (_) {}
 }
 

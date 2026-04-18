@@ -19,8 +19,8 @@ from io import StringIO
 from pathlib import Path
 
 WIKIMAN        = Path("C:/Nitin/Nitins/WikiMan")
-CAVEMAN_ROOT   = WIKIMAN / "caveman"
-CAVE_MEM_ROOT  = Path("C:/Nitin/Nitins/cave-mem")
+STONEAGE_ROOT   = WIKIMAN / "stoneage"
+CAVE_MEM_ROOT  = Path("C:/Nitin/Nitins/stoneage")
 
 CLAUDE_MEM_CONTEXT = """\
 CLAUDE-MEM ACTIVE — persistent cross-session memory enabled.
@@ -78,10 +78,10 @@ def gather_metrics():
         # S1: nothing
         s1_output = ""
 
-        # S2: caveman
+        # S2: stoneage
         s2 = subprocess.run(
-            ["node", str(CAVEMAN_ROOT / "hooks" / "caveman-activate.js")],
-            cwd=str(CAVEMAN_ROOT / "hooks"), env=env,
+            ["node", str(STONEAGE_ROOT / "hooks" / "stoneage-activate.js")],
+            cwd=str(STONEAGE_ROOT / "hooks"), env=env,
             text=True, capture_output=True,
         )
         s2_output = s2.stdout
@@ -89,9 +89,9 @@ def gather_metrics():
         # S3: claude-mem (representative)
         s3_output = CLAUDE_MEM_CONTEXT
 
-        # S4: cave-mem
+        # S4: stoneage
         s4 = subprocess.run(
-            ["node", str(CAVE_MEM_ROOT / "hooks" / "cave-mem-activate.js")],
+            ["node", str(CAVE_MEM_ROOT / "hooks" / "stoneage-activate.js")],
             cwd=str(CAVE_MEM_ROOT / "hooks"), env=env,
             text=True, capture_output=True,
         )
@@ -138,14 +138,14 @@ def render(m, test_result, test_output, duration):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     lines = [
         "=" * W,
-        f"  cave-mem  |  4-SCENARIO COMPARISON REPORT  |  {now}",
+        f"  stoneage  |  4-SCENARIO COMPARISON REPORT  |  {now}",
         "=" * W,
         "",
         "  SCENARIOS",
         "  S1  Vanilla       — no plugins, no compression, no memory",
-        "  S2  caveman only  — terse output, no memory",
+        "  S2  stoneage only  — terse output, no memory",
         "  S3  claude-mem only — memory, no compression",
-        "  S4  cave-mem      — terse output + compressed memory (combined)",
+        "  S4  stoneage      — terse output + compressed memory (combined)",
         "",
         "-" * W,
         "  SESSION START CONTEXT INJECTION",
@@ -153,13 +153,13 @@ def render(m, test_result, test_output, duration):
         f"  {'Scenario':<22} {'Chars':>7}  {'~Tokens':>8}  {'vs Naive':>10}",
         f"  {'-'*52}",
         f"  {'S1  Vanilla':<22} {m['s1']['chars']:>7}  {m['s1']['tokens']:>8}       —",
-        f"  {'S2  caveman only':<22} {m['s2']['chars']:>7}  {m['s2']['tokens']:>8}       —",
+        f"  {'S2  stoneage only':<22} {m['s2']['chars']:>7}  {m['s2']['tokens']:>8}       —",
         f"  {'S3  claude-mem only':<22} {m['s3']['chars']:>7}  {m['s3']['tokens']:>8}       —",
-        f"  {'S4  cave-mem':<22} {m['s4']['chars']:>7}  {m['s4']['tokens']:>8}  "
+        f"  {'S4  stoneage':<22} {m['s4']['chars']:>7}  {m['s4']['tokens']:>8}  "
         f"-{m['saving']['pct']}%",
         f"  {'Naive S2+S3':<22} {m['naive']['chars']:>7}  {m['naive']['tokens']:>8}  (baseline)",
         f"  {'-'*52}",
-        f"  cave-mem saves {m['saving']['chars']} chars ({m['saving']['pct']}%) vs running both separately",
+        f"  stoneage saves {m['saving']['chars']} chars ({m['saving']['pct']}%) vs running both separately",
         "",
         "-" * W,
         "  FEATURE MATRIX",
@@ -167,17 +167,17 @@ def render(m, test_result, test_output, duration):
         f"  {'Scenario':<22} {'Compression':>13} {'Memory':>8} {'Unified Flag':>14} {'Mem Compressed':>16}",
         f"  {'-'*(W-2)}",
         f"  {'S1  Vanilla':<22} {'No':>13} {'No':>8} {'No':>14} {'No':>16}",
-        f"  {'S2  caveman only':<22} {'Yes (~75%)':>13} {'No':>8} {'No':>14} {'No':>16}",
+        f"  {'S2  stoneage only':<22} {'Yes (~75%)':>13} {'No':>8} {'No':>14} {'No':>16}",
         f"  {'S3  claude-mem only':<22} {'No':>13} {'Yes':>8} {'No':>14} {'No':>16}",
-        f"  {'S4  cave-mem':<22} {'Yes (~75%)':>13} {'Yes':>8} {'Yes':>14} {'Yes (~75%)':>16}",
+        f"  {'S4  stoneage':<22} {'Yes (~75%)':>13} {'Yes':>8} {'Yes':>14} {'Yes (~75%)':>16}",
         "",
         "-" * W,
         "  MEMORY STORAGE COST PER ENTRY (200 char verbose baseline)",
         "-" * W,
         f"  S1  Vanilla       :   {m['mem_costs']['s1']:>3} chars  (no memory system)",
-        f"  S2  caveman only  :   {m['mem_costs']['s2']:>3} chars  (no memory system)",
+        f"  S2  stoneage only  :   {m['mem_costs']['s2']:>3} chars  (no memory system)",
         f"  S3  claude-mem only:  {m['mem_costs']['s3']:>3} chars  (stored verbosely, 1.0x)",
-        f"  S4  cave-mem      :   {m['mem_costs']['s4']:>3} chars  (compressed at full level, 0.25x)",
+        f"  S4  stoneage      :   {m['mem_costs']['s4']:>3} chars  (compressed at full level, 0.25x)",
         "",
         "-" * W,
         "  PROJECTED CONTEXT COST OVER TIME (chars injected at session start)",
@@ -186,8 +186,8 @@ def render(m, test_result, test_output, duration):
         f"  {'-'*62}",
     ]
 
-    for key, label in [("s1","S1  Vanilla"), ("s2","S2  caveman"),
-                        ("s3","S3  claude-mem"), ("s4","S4  cave-mem")]:
+    for key, label in [("s1","S1  Vanilla"), ("s2","S2  stoneage"),
+                        ("s3","S3  claude-mem"), ("s4","S4  stoneage")]:
         base = m[key]['chars']
         p10  = m['projected_10'][key]
         p50  = m['projected_50'][key]
@@ -196,19 +196,19 @@ def render(m, test_result, test_output, duration):
 
     lines += [
         "",
-        "  KEY INSIGHT: S3 (claude-mem) grows 5x faster than S4 (cave-mem)",
+        "  KEY INSIGHT: S3 (claude-mem) grows 5x faster than S4 (stoneage)",
         "  because S4 compresses each entry by ~75% before storing.",
         "",
         "-" * W,
         "  HOOK BEHAVIOUR COMPARISON",
         "-" * W,
-        "  Event           S1 Vanilla    S2 caveman    S3 claude-mem  S4 cave-mem",
+        "  Event           S1 Vanilla    S2 stoneage    S3 claude-mem  S4 stoneage",
         "  " + "-" * 68,
-        "  SessionStart    nothing       caveman rules mem context    BOTH combined",
-        "  UserPromptSubmit nothing      /caveman cmds n/a            /cave-mem cmds",
-        "  Flag written    none          .caveman-act  none           .cave-mem-act",
-        "  Slash commands  none          /caveman      /mem-search    /cave-mem",
-        "                                                             /cave-mem-search",
+        "  SessionStart    nothing       stoneage rules mem context    BOTH combined",
+        "  UserPromptSubmit nothing      /stoneage cmds n/a            /stoneage cmds",
+        "  Flag written    none          .stoneage-act  none           .stoneage-act",
+        "  Slash commands  none          /stoneage      /mem-search    /stoneage",
+        "                                                             /stoneage-search",
         "",
         "-" * W,
         f"  TEST RESULTS  ({test_result.testsRun} tests, {duration}s)",

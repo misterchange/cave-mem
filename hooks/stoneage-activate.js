@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * cave-mem — SessionStart activation hook
+ * stoneage — SessionStart activation hook
  *
  * 1. Read active compression level from config
- * 2. Write ~/.claude/.cave-mem-active flag (statusline reads this)
- * 3. Load caveman SKILL.md (single source of truth for compression rules)
+ * 2. Write ~/.claude/.stoneage-active flag (statusline reads this)
+ * 3. Load stoneage SKILL.md (single source of truth for compression rules)
  * 4. Load last 200 memories from SQLite → inject as context
- * 5. Emit COMBINED context: caveman rules + memory section
+ * 5. Emit COMBINED context: stoneage rules + memory section
  */
 
 'use strict';
@@ -14,10 +14,10 @@
 const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
-const { getCompressionLevel, claudeDir } = require('./cave-mem-config');
-const { openDB, loadRecent } = require('./cave-mem-db');
+const { getCompressionLevel, claudeDir } = require('./stoneage-config');
+const { openDB, loadRecent } = require('./stoneage-db');
 
-const flagPath     = path.join(claudeDir, '.cave-mem-active');
+const flagPath     = path.join(claudeDir, '.stoneage-active');
 const settingsPath = path.join(claudeDir, 'settings.json');
 const level        = getCompressionLevel();
 
@@ -34,18 +34,18 @@ try {
   fs.writeFileSync(flagPath, level);
 } catch (_) {}
 
-// ── Load caveman SKILL.md ─────────────────────────────────────────────────────
+// ── Load stoneage SKILL.md ─────────────────────────────────────────────────────
 let skillContent = '';
 const skillCandidates = [
-  path.join(__dirname, '..', '..', 'caveman', 'skills', 'caveman', 'SKILL.md'),
-  path.join(os.homedir(), '.claude', 'plugins', 'marketplaces', 'JuliusBrussee', 'skills', 'caveman', 'SKILL.md'),
-  path.join('C:', 'Nitin', 'Nitins', 'WikiMan', 'caveman', 'skills', 'caveman', 'SKILL.md'),
+  path.join(__dirname, '..', '..', 'stoneage', 'skills', 'stoneage', 'SKILL.md'),
+  path.join(os.homedir(), '.claude', 'plugins', 'marketplaces', 'JuliusBrussee', 'skills', 'stoneage', 'SKILL.md'),
+  path.join('C:', 'Nitin', 'Nitins', 'WikiMan', 'stoneage', 'skills', 'stoneage', 'SKILL.md'),
 ];
 for (const candidate of skillCandidates) {
   try { skillContent = fs.readFileSync(candidate, 'utf8'); break; } catch (_) {}
 }
 
-function extractCavemanRules(raw, activeLevel) {
+function extractStoneageRules(raw, activeLevel) {
   if (!raw) return null;
   const body = raw.replace(/^---[\s\S]*?---\s*/, '');
   const filtered = body.split('\n').reduce((acc, line) => {
@@ -59,9 +59,9 @@ function extractCavemanRules(raw, activeLevel) {
   return filtered.join('\n').trim();
 }
 
-const cavemanRules = extractCavemanRules(skillContent, level) || (
-  'Respond terse like smart caveman. All technical substance stay. Only fluff die.\n\n' +
-  '## Persistence\n\nACTIVE EVERY RESPONSE. No revert. Off: "stop cave-mem" / "normal mode".\n\n' +
+const stoneageRules = extractStoneageRules(skillContent, level) || (
+  'Respond terse like smart stoneage. All technical substance stay. Only fluff die.\n\n' +
+  '## Persistence\n\nACTIVE EVERY RESPONSE. No revert. Off: "stop stoneage" / "normal mode".\n\n' +
   '## Rules\n\nDrop: articles, filler, pleasantries, hedging. Fragments OK. Short synonyms. Code blocks unchanged.\n\n' +
   'Pattern: `[thing] [action] [reason]. [next step].`'
 );
@@ -87,24 +87,24 @@ const memCtx = formatMemoryContext(recentMemories);
 
 // ── Memory section ────────────────────────────────────────────────────────────
 const memorySection = `\
-## Memory (cave-mem)
+## Memory (stoneage)
 
-Cross-session observations stored in SQLite. Format: active caveman level (${level}).
+Cross-session observations stored in SQLite. Format: active stoneage level (${level}).
 
 Rules:
 - Cite stored facts: prefix with [mem:<id>] when drawing from past sessions
 - <private>...</private> tags exclude content from memory storage
-- \`/cave-mem search <query>\` — full-text search past observations
+- \`/stoneage search <query>\` — full-text search past observations
 - Memory auto-captures: tool results, file edits, key decisions, errors+fixes
 
-Current level: **${level}**. Switch: \`/cave-mem lite|full|ultra\`.` +
+Current level: **${level}**. Switch: \`/stoneage lite|full|ultra\`.` +
 (memCtx ? '\n\n' + memCtx : '');
 
 // ── Compose output ────────────────────────────────────────────────────────────
 let output =
-  `CAVE-MEM MODE ACTIVE — level: ${level}\n` +
-  `(caveman output compression + persistent cross-session memory)\n\n` +
-  cavemanRules +
+  `STONEAGE MODE ACTIVE — level: ${level}\n` +
+  `(stoneage output compression + persistent cross-session memory)\n\n` +
+  stoneageRules +
   '\n\n---\n\n' +
   memorySection;
 
@@ -117,7 +117,7 @@ try {
   }
   if (!hasStatusline) {
     const isWindows  = process.platform === 'win32';
-    const scriptName = isWindows ? 'cave-mem-statusline.ps1' : 'cave-mem-statusline.sh';
+    const scriptName = isWindows ? 'stoneage-statusline.ps1' : 'stoneage-statusline.sh';
     const scriptPath = path.join(__dirname, scriptName);
     const command    = isWindows
       ? `powershell -ExecutionPolicy Bypass -File "${scriptPath}"`

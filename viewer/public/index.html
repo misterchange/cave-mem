@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>cave-mem · memory stream</title>
+<title>stoneage · memory stream</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;500;600&family=Urbanist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -414,7 +414,7 @@
 
 <header>
   <div class="brand">
-    <span class="brand-mark">cave-mem</span>
+    <span class="brand-mark">stoneage</span>
     <span class="brand-sub">memory stream</span>
   </div>
   <nav style="display:flex;gap:4px;margin-left:10px">
@@ -466,10 +466,10 @@
 
   <div class="stream" id="stream">
     <div class="empty" id="empty-state">
-      <div class="empty-emoji">🦴</div>
+      <div class="empty-emoji">🪨</div>
       <h2>Waiting for memories…</h2>
       <p>Use any tool in Claude Code — entries stream here in real-time.</p>
-      <code>~/.claude/cave-mem-memory.db</code>
+      <code>~/.claude/stoneage-memory.db</code>
     </div>
   </div>
 
@@ -507,7 +507,7 @@
 <script>
 // ── Theme ────────────────────────────────────────────────────────────────────
 (function initTheme() {
-  const stored = localStorage.getItem('cave-mem-theme');
+  const stored = localStorage.getItem('stoneage-theme');
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const theme = stored || (prefersDark ? 'dark' : 'light');
   document.documentElement.setAttribute('data-theme', theme);
@@ -516,7 +516,7 @@ function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme') || 'light';
   const next = cur === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('cave-mem-theme', next);
+  localStorage.setItem('stoneage-theme', next);
   const btn = document.getElementById('theme-btn');
   if (btn) btn.textContent = next === 'dark' ? '☀' : '☾';
 }

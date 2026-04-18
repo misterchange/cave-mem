@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 /**
- * cave-mem — PostToolUse observer hook
+ * stoneage — PostToolUse observer hook
  *
  * Fires after every tool call. Captures the tool result, compresses it
- * to the active cave-mem level, and stores in SQLite.
+ * to the active stoneage level, and stores in SQLite.
  *
- * DB:     ~/.claude/cave-mem-memory.db
- * Viewer: node C:/Nitin/Nitins/cave-mem/viewer/server.js
+ * DB:     ~/.claude/stoneage-memory.db
+ * Viewer: node C:/Nitin/Nitins/stoneage/viewer/server.js
  */
 
 'use strict';
 
 const fs   = require('fs');
 const path = require('path');
-const { getCompressionLevel, claudeDir } = require('./cave-mem-config');
-const { openDB, insertEntry } = require('./cave-mem-db');
-const { writeAllHandoffs }    = require('./cave-mem-handoff');
+const { getCompressionLevel, claudeDir } = require('./stoneage-config');
+const { openDB, insertEntry } = require('./stoneage-db');
+const { writeAllHandoffs }    = require('./stoneage-handoff');
 
-const flagPath = path.join(claudeDir, '.cave-mem-active');
+const flagPath = path.join(claudeDir, '.stoneage-active');
 
-// Only run if cave-mem is active
+// Only run if stoneage is active
 try {
   if (!fs.existsSync(flagPath)) process.exit(0);
 } catch (_) { process.exit(0); }
@@ -121,7 +121,7 @@ process.stdin.on('end', () => {
     // Throttled to max once every 3 seconds to keep tool-call overhead near-zero.
     try {
       const stampPath = require('path').join(
-        require('./cave-mem-config').claudeDir, '.cave-mem-handoff-stamp'
+        require('./stoneage-config').claudeDir, '.stoneage-handoff-stamp'
       );
       const now  = Date.now();
       let last   = 0;

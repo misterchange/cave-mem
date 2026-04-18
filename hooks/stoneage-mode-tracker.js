@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 /**
- * cave-mem — UserPromptSubmit hook
+ * stoneage — UserPromptSubmit hook
  *
- * Handles /cave-mem commands and deactivation phrases.
- * /cave-mem search <query> now performs real SQLite full-text search
+ * Handles /stoneage commands and deactivation phrases.
+ * /stoneage search <query> now performs real SQLite full-text search
  * and injects matching memories into the prompt context.
  *
  * Supported commands:
- *   /cave-mem              — activate at default level (full)
- *   /cave-mem lite|full|ultra — switch compression level
- *   /cave-mem off          — disable
- *   /cave-mem search <q>   — full-text search SQLite memories
- *   stop cave-mem          — deactivate
+ *   /stoneage              — activate at default level (full)
+ *   /stoneage lite|full|ultra — switch compression level
+ *   /stoneage off          — disable
+ *   /stoneage search <q>   — full-text search SQLite memories
+ *   stop stoneage          — deactivate
  *   normal mode            — deactivate
  */
 
@@ -19,10 +19,10 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { getCompressionLevel, setCompressionLevel, claudeDir } = require('./cave-mem-config');
-const { openDB, searchMemories } = require('./cave-mem-db');
+const { getCompressionLevel, setCompressionLevel, claudeDir } = require('./stoneage-config');
+const { openDB, searchMemories } = require('./stoneage-db');
 
-const flagPath = path.join(claudeDir, '.cave-mem-active');
+const flagPath = path.join(claudeDir, '.stoneage-active');
 
 let rawInput = '';
 process.stdin.on('data', chunk => { rawInput += chunk; });
@@ -38,8 +38,8 @@ process.stdin.on('end', () => {
       process.exit(0);
     }
 
-    // ── /cave-mem commands ────────────────────────────────────────────────────
-    if (lower.startsWith('/cave-mem')) {
+    // ── /stoneage commands ────────────────────────────────────────────────────
+    if (lower.startsWith('/stoneage')) {
       const parts = lower.split(/\s+/);
       const sub   = parts[1] || '';
 
@@ -54,19 +54,19 @@ process.stdin.on('end', () => {
 
             if (results.length === 0) {
               process.stdout.write(
-                `[cave-mem search] No memories found for: "${query}"`
+                `[stoneage search] No memories found for: "${query}"`
               );
             } else {
               const lines = results.map(e =>
                 `[${e.id}] ${e.ts.slice(0,16)} | ${e.tool} | ${e.summary}\n  ${e.content}`
               );
               process.stdout.write(
-                `[cave-mem search] ${results.length} result(s) for "${query}":\n\n` +
+                `[stoneage search] ${results.length} result(s) for "${query}":\n\n` +
                 lines.join('\n\n')
               );
             }
           } catch (err) {
-            process.stdout.write(`[cave-mem search] Error: ${err.message}`);
+            process.stdout.write(`[stoneage search] Error: ${err.message}`);
           }
         }
         process.exit(0);

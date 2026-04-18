@@ -1,16 +1,16 @@
 {
-  "name": "cave-mem",
+  "name": "stoneage",
   "version": "1.3.0",
-  "description": "Combined caveman-style compression + persistent cross-session memory backed by SQLite. Cuts output tokens ~75%, stores memories compressed, FTS across sessions, interactive graph viz + copy-paste AI handoff URL so any AI coder (Cursor/Windsurf/Claude Code/ChatGPT) gets full project context instantly.",
+  "description": "stoneage — raw, honest context compression for local AI coders. Terse output compression + persistent cross-session memory backed by SQLite. Cuts output tokens ~75%, stores memories compressed, FTS across sessions, interactive graph viz + copy-paste AI handoff URL so any AI coder (Cursor/Windsurf/Claude Code/ChatGPT) gets full project context instantly.",
   "author": {
-    "name": "cave-mem contributors"
+    "name": "stoneage contributors"
   },
   "keywords": [
     "claude",
     "claude-code",
     "memory",
     "compression",
-    "caveman",
+    "stoneage",
     "tokens",
     "persistence"
   ],
@@ -20,9 +20,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/cave-mem-activate.js",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/stoneage-activate.js",
             "timeout": 8,
-            "statusMessage": "Loading cave-mem (caveman + memory)..."
+            "statusMessage": "Loading stoneage (compression + memory)..."
           }
         ]
       }
@@ -32,9 +32,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/cave-mem-mode-tracker.js",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/stoneage-mode-tracker.js",
             "timeout": 5,
-            "statusMessage": "Tracking cave-mem mode..."
+            "statusMessage": "Tracking stoneage mode..."
           }
         ]
       }
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/cave-mem-observer.js",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/stoneage-observer.js",
             "async": true
           }
         ]

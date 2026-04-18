@@ -1,29 +1,29 @@
 ---
-name: cave-mem
-description: "Activate combined caveman-style token compression + persistent cross-session memory. Usage: /cave-mem [lite|full|ultra|off|search <query>]"
+name: stoneage
+description: "Activate combined stoneage-style token compression + persistent cross-session memory. Usage: /stoneage [lite|full|ultra|off|search <query>]"
 type: user-invocable
 ---
 
-# cave-mem
+# stoneage
 
-Combines **caveman** (output-token compression) and **claude-mem** (cross-session memory) into a single plugin.
+Combines **stoneage** (output-token compression) and **claude-mem** (cross-session memory) into a single plugin.
 
 ## Quick Reference
 
 | Command | Effect |
 |---------|--------|
-| `/cave-mem` | Activate at default level (full) |
-| `/cave-mem lite` | Lite compression — minor reduction, high readability |
-| `/cave-mem full` | Full compression — ~75% token reduction (default) |
-| `/cave-mem ultra` | Ultra compression — extreme brevity |
-| `/cave-mem off` | Disable cave-mem entirely |
-| `/cave-mem search <q>` | Search past session memory |
-| `stop cave-mem` | Deactivate (prose phrase) |
+| `/stoneage` | Activate at default level (full) |
+| `/stoneage lite` | Lite compression — minor reduction, high readability |
+| `/stoneage full` | Full compression — ~75% token reduction (default) |
+| `/stoneage ultra` | Ultra compression — extreme brevity |
+| `/stoneage off` | Disable stoneage entirely |
+| `/stoneage search <q>` | Search past session memory |
+| `stop stoneage` | Deactivate (prose phrase) |
 | `normal mode` | Deactivate (prose phrase) |
 
 ## How It Works
 
-### Caveman Layer (output compression)
+### Stoneage Layer (output compression)
 - Drops articles, filler words, pleasantries, hedging
 - Keeps all technical substance intact
 - Fragments OK · short synonyms · code blocks unchanged
@@ -31,18 +31,18 @@ Combines **caveman** (output-token compression) and **claude-mem** (cross-sessio
 
 ### Memory Layer (cross-session persistence)
 - Tool results, file edits, errors+fixes captured automatically
-- Stored in caveman-compressed format (matches active level)
+- Stored in stoneage-compressed format (matches active level)
 - Cite stored facts with `[mem:<id>]` prefix
 - Wrap sensitive content in `<private>…</private>` to exclude from storage
 
-### Why Cave-mem Beats Running Both Separately
+### Why stoneage Beats Running Both Separately
 - Single combined context injection < 2× individual outputs (deduplication)
-- One flag file (`.cave-mem-active`) instead of two (`.caveman-active` + mem state)
+- One flag file (`.stoneage-active`) instead of two (`.stoneage-active` + mem state)
 - Memory stored at the active compression level — tokens saved at write AND read time
 
 ## Configuration
 
-`~/.claude/.cave-mem-config.json`
+`~/.claude/.stoneage-config.json`
 ```json
 { "compression": "full" }
 ```

@@ -8,7 +8,7 @@ Measures ACTUAL token savings across all 4 scenarios:
   - Memory tokens : cost per stored memory entry
   - Session total : realistic full-session token budget
 
-Caveman's core claim is ~75% OUTPUT token reduction.
+Stoneage's core claim is ~75% OUTPUT token reduction.
 This suite proves it with real before/after response samples.
 
 Run:
@@ -24,11 +24,11 @@ import unittest
 from pathlib import Path
 
 WIKIMAN      = Path("C:/Nitin/Nitins/WikiMan")
-CAVEMAN_ROOT = WIKIMAN / "caveman"
-CAVE_MEM_ROOT = Path("C:/Nitin/Nitins/cave-mem")
+STONEAGE_ROOT = WIKIMAN / "stoneage"
+CAVE_MEM_ROOT = Path("C:/Nitin/Nitins/stoneage")
 
 # ---------------------------------------------------------------------------
-# Real-world response pairs — VERBOSE vs CAVEMAN COMPRESSED
+# Real-world response pairs — VERBOSE vs STONEAGE COMPRESSED
 # These are representative Claude responses to typical dev questions.
 # ---------------------------------------------------------------------------
 
@@ -46,7 +46,7 @@ RESPONSE_PAIRS = {
             "hook so that React can reuse the same reference when the dependencies haven't "
             "changed. Here's how you can implement that solution:"
         ),
-        "caveman": (
+        "stoneage": (
             "New object ref each render. Inline object prop = new ref = re-render. "
             "Wrap in `useMemo`:"
         ),
@@ -64,7 +64,7 @@ RESPONSE_PAIRS = {
             "uses it to run the query, and then returns it when done. This approach significantly "
             "reduces latency and resource consumption, especially under high load."
         ),
-        "caveman": (
+        "stoneage": (
             "Pool reuse open DB connections. No new connection per request. "
             "Skip handshake overhead. Borrow → query → return. Faster under load."
         ),
@@ -82,7 +82,7 @@ RESPONSE_PAIRS = {
             "Once you've identified the null variable, you should trace back through your code "
             "to find where it should have been initialized and why that initialization failed."
         ),
-        "caveman": (
+        "stoneage": (
             "NPE: null ref on line 42. Check which variable null. Add log before line 42 "
             "or use debugger. Trace back to where init should happen."
         ),
@@ -100,7 +100,7 @@ RESPONSE_PAIRS = {
             "in place, which means that if something unexpected happens during execution, the "
             "error will just propagate up the call stack without any useful context."
         ),
-        "caveman": (
+        "stoneage": (
             "Issues: 1) Function does too much — split by responsibility. "
             "2) No error handling — add try/catch with context. "
             "3) No tests visible — add unit tests."
@@ -120,7 +120,7 @@ RESPONSE_PAIRS = {
             "works by taking the commits from your branch and replaying them on top of the target "
             "branch one by one. This creates a much cleaner, linear history."
         ),
-        "caveman": (
+        "stoneage": (
             "Merge: creates merge commit, preserves full history, messy graph. "
             "Rebase: replays commits on top of target, linear history, rewrites SHAs. "
             "Rule: rebase local branches, merge shared branches."
@@ -176,12 +176,12 @@ def get_injection_size(scenario):
         if scenario == "s1":
             return 0
         elif scenario == "s2":
-            r = _run_node(CAVEMAN_ROOT / "hooks" / "caveman-activate.js", home)
+            r = _run_node(STONEAGE_ROOT / "hooks" / "stoneage-activate.js", home)
             return len(r.stdout)
         elif scenario == "s3":
             return len(CLAUDE_MEM_CONTEXT)
         elif scenario == "s4":
-            r = _run_node(CAVE_MEM_ROOT / "hooks" / "cave-mem-activate.js", home)
+            r = _run_node(CAVE_MEM_ROOT / "hooks" / "stoneage-activate.js", home)
             return len(r.stdout)
 
 # ============================================================================
@@ -190,7 +190,7 @@ def get_injection_size(scenario):
 
 class TestOutputTokenReduction(unittest.TestCase):
     """
-    Caveman (S2, S4) must produce significantly shorter responses than
+    Stoneage (S2, S4) must produce significantly shorter responses than
     vanilla (S1, S3). Tests use real before/after response samples.
     """
 
@@ -200,20 +200,20 @@ class TestOutputTokenReduction(unittest.TestCase):
         return round((1 - c / v) * 100, 1)
 
     def test_all_pairs_show_reduction(self):
-        """Every verbose→caveman pair must show >= 50% token reduction."""
+        """Every verbose→stoneage pair must show >= 50% token reduction."""
         for name, pair in RESPONSE_PAIRS.items():
-            pct = self._reduction_pct(pair["verbose"], pair["caveman"])
+            pct = self._reduction_pct(pair["verbose"], pair["stoneage"])
             self.assertGreaterEqual(
                 pct, 50,
                 f"{name}: expected >= 50% reduction, got {pct}%"
             )
             print(f"\n[OUTPUT] {name}: {pct}% reduction  "
-                  f"({approx_tokens(pair['verbose'])} → {approx_tokens(pair['caveman'])} tokens)")
+                  f"({approx_tokens(pair['verbose'])} → {approx_tokens(pair['stoneage'])} tokens)")
 
     def test_average_reduction_exceeds_65_percent(self):
         """Average output token reduction across all sample pairs must be >= 65%."""
         reductions = [
-            self._reduction_pct(p["verbose"], p["caveman"])
+            self._reduction_pct(p["verbose"], p["stoneage"])
             for p in RESPONSE_PAIRS.values()
         ]
         avg = sum(reductions) / len(reductions)
@@ -222,20 +222,20 @@ class TestOutputTokenReduction(unittest.TestCase):
         print(f"\n[OUTPUT] Average reduction: {avg:.1f}%")
 
     def test_verbose_responses_are_larger(self):
-        """S1/S3 (no caveman) pay full output cost — verbose responses larger."""
+        """S1/S3 (no stoneage) pay full output cost — verbose responses larger."""
         for name, pair in RESPONSE_PAIRS.items():
             v_tok = approx_tokens(pair["verbose"])
-            c_tok = approx_tokens(pair["caveman"])
+            c_tok = approx_tokens(pair["stoneage"])
             self.assertGreater(v_tok, c_tok,
-                f"{name}: verbose ({v_tok}) must be larger than caveman ({c_tok})")
+                f"{name}: verbose ({v_tok}) must be larger than stoneage ({c_tok})")
 
     def test_s1_s3_pay_full_output_cost(self):
         """Vanilla and claude-mem-only get no output compression."""
         for name, pair in RESPONSE_PAIRS.items():
             s1_cost = approx_tokens(pair["verbose"])   # full cost
-            s3_cost = approx_tokens(pair["verbose"])   # full cost (no caveman)
-            s2_cost = approx_tokens(pair["caveman"])   # compressed
-            s4_cost = approx_tokens(pair["caveman"])   # compressed
+            s3_cost = approx_tokens(pair["verbose"])   # full cost (no stoneage)
+            s2_cost = approx_tokens(pair["stoneage"])   # compressed
+            s4_cost = approx_tokens(pair["stoneage"])   # compressed
             self.assertGreater(s1_cost, s2_cost, f"{name}: S1 > S2 output cost")
             self.assertGreater(s3_cost, s4_cost, f"{name}: S3 > S4 output cost")
 
@@ -263,19 +263,19 @@ class TestInputTokenCosts(unittest.TestCase):
 
     def test_s4_less_than_naive(self):
         self.assertLess(self.s4_chars, self.naive,
-            f"cave-mem ({self.s4_chars}) must be < naive S2+S3 ({self.naive})")
+            f"stoneage ({self.s4_chars}) must be < naive S2+S3 ({self.naive})")
 
     def test_s4_saves_vs_naive(self):
         saving = self.naive - self.s4_chars
         pct    = saving / self.naive * 100
         self.assertGreater(saving, 0)
-        print(f"\n[INPUT] cave-mem saves {saving} chars ({pct:.1f}%) vs naive")
+        print(f"\n[INPUT] stoneage saves {saving} chars ({pct:.1f}%) vs naive")
 
     def test_print_all_injection_costs(self):
         print(f"\n[INPUT] S1 Vanilla      : {self.s1_chars:>5} chars / ~{self.s1_chars//4:>4} tokens")
-        print(f"[INPUT] S2 caveman      : {self.s2_chars:>5} chars / ~{self.s2_chars//4:>4} tokens")
+        print(f"[INPUT] S2 stoneage      : {self.s2_chars:>5} chars / ~{self.s2_chars//4:>4} tokens")
         print(f"[INPUT] S3 claude-mem   : {self.s3_chars:>5} chars / ~{self.s3_chars//4:>4} tokens")
-        print(f"[INPUT] S4 cave-mem     : {self.s4_chars:>5} chars / ~{self.s4_chars//4:>4} tokens")
+        print(f"[INPUT] S4 stoneage     : {self.s4_chars:>5} chars / ~{self.s4_chars//4:>4} tokens")
         print(f"[INPUT] Naive S2+S3     : {self.naive:>5} chars / ~{self.naive//4:>4} tokens")
 
 
@@ -304,12 +304,12 @@ class TestFullSessionBudget(unittest.TestCase):
 
         # Average response sizes from real pairs
         verbose_sizes    = [approx_tokens(p["verbose"])  for p in RESPONSE_PAIRS.values()]
-        caveman_sizes    = [approx_tokens(p["caveman"])  for p in RESPONSE_PAIRS.values()]
+        stoneage_sizes    = [approx_tokens(p["stoneage"])  for p in RESPONSE_PAIRS.values()]
         question_sizes   = [approx_tokens(p["question"]) for p in RESPONSE_PAIRS.values()]
 
         cls.avg_q      = sum(question_sizes) // len(question_sizes)
         cls.avg_v_resp = sum(verbose_sizes)  // len(verbose_sizes)
-        cls.avg_c_resp = sum(caveman_sizes)  // len(caveman_sizes)
+        cls.avg_c_resp = sum(stoneage_sizes)  // len(stoneage_sizes)
 
     def _session_total(self, injection_chars, response_tokens_per_turn):
         injection_tokens = injection_chars // 4
@@ -317,7 +317,7 @@ class TestFullSessionBudget(unittest.TestCase):
         return injection_tokens + (per_turn * self.SESSION_TURNS)
 
     def test_s4_cheapest_full_session(self):
-        """cave-mem has the lowest total token cost over a full session."""
+        """stoneage has the lowest total token cost over a full session."""
         s1 = self._session_total(self.inj["s1"], self.avg_v_resp)
         s2 = self._session_total(self.inj["s2"], self.avg_c_resp)
         s3 = self._session_total(self.inj["s3"], self.avg_v_resp)
@@ -327,7 +327,7 @@ class TestFullSessionBudget(unittest.TestCase):
         self.assertLess(s4, s3, "S4 must beat claude-mem-only total cost")
 
     def test_s2_and_s4_both_cheaper_than_s1_s3(self):
-        """Both caveman scenarios (S2, S4) cost less per session than verbose (S1, S3)."""
+        """Both stoneage scenarios (S2, S4) cost less per session than verbose (S1, S3)."""
         s1 = self._session_total(self.inj["s1"], self.avg_v_resp)
         s2 = self._session_total(self.inj["s2"], self.avg_c_resp)
         s3 = self._session_total(self.inj["s3"], self.avg_v_resp)
@@ -344,11 +344,11 @@ class TestFullSessionBudget(unittest.TestCase):
         s4 = self._session_total(self.inj["s4"], self.avg_c_resp)
 
         print(f"\n[SESSION] {self.SESSION_TURNS}-turn session budget (avg Q={self.avg_q}t, "
-              f"verbose resp={self.avg_v_resp}t, caveman resp={self.avg_c_resp}t):")
+              f"verbose resp={self.avg_v_resp}t, stoneage resp={self.avg_c_resp}t):")
         print(f"  S1 Vanilla     : {s1:>6} tokens total")
-        print(f"  S2 caveman     : {s2:>6} tokens total  ({(1-s2/s1)*100:.1f}% vs S1)")
+        print(f"  S2 stoneage     : {s2:>6} tokens total  ({(1-s2/s1)*100:.1f}% vs S1)")
         print(f"  S3 claude-mem  : {s3:>6} tokens total  ({(1-s3/s1)*100:.1f}% vs S1)")
-        print(f"  S4 cave-mem    : {s4:>6} tokens total  ({(1-s4/s1)*100:.1f}% vs S1)")
+        print(f"  S4 stoneage    : {s4:>6} tokens total  ({(1-s4/s1)*100:.1f}% vs S1)")
 
 
 # ============================================================================
@@ -362,19 +362,19 @@ class TestTokenReductionSummary(unittest.TestCase):
 
     def _avg_reduction(self):
         total = sum(
-            (1 - approx_tokens(p["caveman"]) / approx_tokens(p["verbose"]))
+            (1 - approx_tokens(p["stoneage"]) / approx_tokens(p["verbose"]))
             for p in RESPONSE_PAIRS.values()
         )
         return total / len(RESPONSE_PAIRS) * 100
 
-    def test_caveman_claim_75_percent_output_reduction(self):
+    def test_stoneage_claim_75_percent_output_reduction(self):
         """
-        caveman's core claim: ~75% output token reduction.
+        stoneage's core claim: ~75% output token reduction.
         Our samples must average >= 65% (conservative bound).
         """
         avg = self._avg_reduction()
         self.assertGreaterEqual(avg, 65,
-            f"Caveman output reduction {avg:.1f}% must be >= 65%")
+            f"Stoneage output reduction {avg:.1f}% must be >= 65%")
 
     def test_s1_s3_no_output_reduction(self):
         """S1 (vanilla) and S3 (claude-mem only) get ZERO output reduction."""
@@ -384,10 +384,10 @@ class TestTokenReductionSummary(unittest.TestCase):
         self.assertEqual(s3_reduction, 0.0)
 
     def test_s2_s4_have_output_reduction(self):
-        """S2 (caveman) and S4 (cave-mem) both have output reduction > 0."""
+        """S2 (stoneage) and S4 (stoneage) both have output reduction > 0."""
         avg = self._avg_reduction()
-        s2_reduction = avg   # caveman only
-        s4_reduction = avg   # cave-mem (same compression rules)
+        s2_reduction = avg   # stoneage only
+        s4_reduction = avg   # stoneage (same compression rules)
         self.assertGreater(s2_reduction, 0)
         self.assertGreater(s4_reduction, 0)
 
@@ -407,7 +407,7 @@ class TestTokenReductionSummary(unittest.TestCase):
         self.assertAlmostEqual(pct, 75, delta=5)
         print(f"\n[MEMORY] After {n_memories} memories:")
         print(f"  S3 claude-mem : {s3_mem_cost} chars / ~{s3_mem_cost//4} tokens (verbose)")
-        print(f"  S4 cave-mem   : {s4_mem_cost} chars / ~{s4_mem_cost//4} tokens (compressed)")
+        print(f"  S4 stoneage   : {s4_mem_cost} chars / ~{s4_mem_cost//4} tokens (compressed)")
         print(f"  S4 saves      : {saving} chars / ~{saving//4} tokens ({pct:.0f}%)")
 
     def test_print_full_reduction_table(self):
@@ -418,7 +418,7 @@ class TestTokenReductionSummary(unittest.TestCase):
         print(f"\n  Output token reduction per response:")
         for name, pair in RESPONSE_PAIRS.items():
             v = approx_tokens(pair["verbose"])
-            c = approx_tokens(pair["caveman"])
+            c = approx_tokens(pair["stoneage"])
             pct = (1 - c/v) * 100
             print(f"    {name:<28} {v:>4} -> {c:>3} tokens  ({pct:.0f}% reduced)")
 
@@ -427,9 +427,9 @@ class TestTokenReductionSummary(unittest.TestCase):
 
         print(f"\n  Where each scenario applies compression:")
         print(f"    S1 Vanilla       : 0%   output  +  0%   memory")
-        print(f"    S2 caveman only  : ~{avg:.0f}%  output  +  0%   memory")
+        print(f"    S2 stoneage only  : ~{avg:.0f}%  output  +  0%   memory")
         print(f"    S3 claude-mem    : 0%   output  + 0%   memory (stored verbose)")
-        print(f"    S4 cave-mem      : ~{avg:.0f}%  output  + ~75% memory")
+        print(f"    S4 stoneage      : ~{avg:.0f}%  output  + ~75% memory")
         print(f"{'='*60}")
 
 

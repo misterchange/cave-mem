@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * cave-mem shared configuration
+ * stoneage shared configuration
  *
- * Config file: ~/.claude/.cave-mem-config.json
+ * Config file: ~/.claude/.stoneage-config.json
  * {
  *   "compression": "lite" | "full" | "ultra" | "off"   // default: "full"
  * }
@@ -24,14 +24,27 @@ const VALID_LEVELS  = new Set(['lite', 'full', 'ultra', 'off']);
 const DEFAULT_LEVEL = 'full';
 
 const claudeDir    = path.join(os.homedir(), '.claude');
-const configPath   = path.join(claudeDir, '.cave-mem-config.json');
+const configPath   = path.join(claudeDir, '.stoneage-config.json');
+// Backward-compat: pre-rebrand filenames. Copied to the new name on first read
+// if the new file does not yet exist, preserving existing settings/flag.
+const LEGACY_CONFIG = path.join(claudeDir, '.cave-mem-config.json');
+const LEGACY_FLAG   = path.join(claudeDir, '.cave-mem-active');
+
+function migrateLegacy(newPath, oldPath) {
+  try {
+    if (!fs.existsSync(newPath) && fs.existsSync(oldPath)) {
+      fs.copyFileSync(oldPath, newPath);
+    }
+  } catch (_) { /* best-effort */ }
+}
 
 /**
  * Return the active compression level.
- * Reads ~/.claude/.cave-mem-config.json; falls back to DEFAULT_LEVEL.
+ * Reads ~/.claude/.stoneage-config.json; falls back to DEFAULT_LEVEL.
  */
 function getCompressionLevel() {
   try {
+    migrateLegacy(configPath, LEGACY_CONFIG);
     const raw   = fs.readFileSync(configPath, 'utf8');
     const cfg   = JSON.parse(raw);
     const level = (cfg.compression || '').trim().toLowerCase();
@@ -58,11 +71,12 @@ function setCompressionLevel(level) {
 
 /**
  * Read the current active mode from the runtime flag file.
- * Returns null if cave-mem is not currently active.
+ * Returns null if stoneage is not currently active.
  */
 function getActiveMode() {
-  const flagPath = path.join(claudeDir, '.cave-mem-active');
+  const flagPath = path.join(claudeDir, '.stoneage-active');
   try {
+    migrateLegacy(flagPath, LEGACY_FLAG);
     return fs.readFileSync(flagPath, 'utf8').trim() || null;
   } catch (_) {
     return null;

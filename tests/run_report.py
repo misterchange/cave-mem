@@ -1,9 +1,9 @@
 """
-cave-mem Before/After Test Report Generator
+stoneage Before/After Test Report Generator
 
 Usage:
-    python tests/run_report.py --phase baseline   # run before cave-mem is created
-    python tests/run_report.py --phase cave-mem   # run after cave-mem is created
+    python tests/run_report.py --phase baseline   # run before stoneage is created
+    python tests/run_report.py --phase stoneage   # run after stoneage is created
     python tests/run_report.py --phase both       # run both and compare (default)
 
 Reports are saved to tests/reports/
@@ -72,7 +72,7 @@ def render_report(results: list[dict], phase: str) -> str:
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     lines = [
         "=" * 72,
-        f"  cave-mem  |  {phase.upper()} PHASE REPORT  |  {now}",
+        f"  stoneage  |  {phase.upper()} PHASE REPORT  |  {now}",
         "=" * 72,
         "",
     ]
@@ -154,7 +154,7 @@ def render_comparison(before: list[dict], after: list[dict]) -> str:
 
     lines = [
         "=" * 72,
-        f"  cave-mem  |  BEFORE vs AFTER COMPARISON  |  {now}",
+        f"  stoneage  |  BEFORE vs AFTER COMPARISON  |  {now}",
         "=" * 72,
         "",
         "  SUMMARY",
@@ -198,9 +198,9 @@ def render_comparison(before: list[dict], after: list[dict]) -> str:
     lines += [
         "  INTERPRETATION",
         "  -----------------------------------------------------------------",
-        "  baseline tests  — verify caveman & claude-mem are INDEPENDENT",
-        "  cave-mem tests  — verify the COMBINED plugin works correctly",
-        "  Expected result — baseline: all pass  |  cave-mem: all pass",
+        "  baseline tests  — verify stoneage & claude-mem are INDEPENDENT",
+        "  stoneage tests  — verify the COMBINED plugin works correctly",
+        "  Expected result — baseline: all pass  |  stoneage: all pass",
         "=" * 72,
     ]
     return "\n".join(lines)
@@ -216,7 +216,7 @@ def main():
     sys.path.insert(0, str(THIS_DIR.parent))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--phase", choices=["baseline", "cave-mem", "both"],
+    parser.add_argument("--phase", choices=["baseline", "stoneage", "both"],
                         default="both")
     args = parser.parse_args()
 
@@ -224,7 +224,7 @@ def main():
     after_results  = []
 
     if args.phase in ("baseline", "both"):
-        print("\nRunning BASELINE tests (before cave-mem)...")
+        print("\nRunning BASELINE tests (before stoneage)...")
         before_results = [run_suite("tests.test_baseline")]
         report_text = render_report(before_results, "baseline")
         print(report_text)
@@ -232,14 +232,14 @@ def main():
         out.write_text(report_text)
         print(f"\nBaseline report saved → {out}")
 
-    if args.phase in ("cave-mem", "both"):
-        print("\nRunning CAVE-MEM tests (after cave-mem)...")
+    if args.phase in ("stoneage", "both"):
+        print("\nRunning STONEAGE tests (after stoneage)...")
         after_results = [run_suite("tests.test_cave_mem")]
-        report_text = render_report(after_results, "cave-mem")
+        report_text = render_report(after_results, "stoneage")
         print(report_text)
-        out = REPORTS_DIR / f"cave_mem_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        out = REPORTS_DIR / f"stoneage_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         out.write_text(report_text)
-        print(f"\nCave-mem report saved → {out}")
+        print(f"\nstoneage report saved → {out}")
 
     if args.phase == "both":
         comp = render_comparison(before_results, after_results)
