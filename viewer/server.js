@@ -25,6 +25,44 @@ const { openDB, loadRecent, searchMemories, deleteSession, getStats, MEM_DB } =
 
 const db = openDB();
 
+// ── Session naming ────────────────────────────────────────────────────────────
+// Consistent folder-based label w/ disambiguation when same folder has multiple
+// sessions. Chronological order (earliest = #1). Also returns filesystem-safe
+// slug used for per-session handoff filenames.
+function folderBase(cwd) {
+  if (!cwd) return 'local';
+  const parts = cwd.replace(/[\\\/]+$/, '').split(/[\\\/]/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : 'local';
+}
+function safeSlug(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9\-]+/g, '-').replace(/^-+|-+$/g,'').slice(0,40) || 'x';
+}
+function buildSessionLabels(sessions) {
+  // sessions: Map<sid, { count, tokensSaved, firstTs, lastTs, cwd }>
+  const entries = [...sessions.entries()].sort(
+    (a, b) => (a[1].firstTs || '').localeCompare(b[1].firstTs || '')
+  );
+  // Count occurrences of each folder, assign #N to duplicates
+  const folderCount = new Map();
+  for (const [, s] of entries) {
+    const f = folderBase(s.cwd);
+    folderCount.set(f, (folderCount.get(f) || 0) + 1);
+  }
+  const folderSeen = new Map();
+  const out = new Map();
+  for (const [sid, s] of entries) {
+    const f   = folderBase(s.cwd);
+    const dup = folderCount.get(f) > 1;
+    const n   = (folderSeen.get(f) || 0) + 1;
+    folderSeen.set(f, n);
+    const sidTag = sid === 'unknown' ? 'sess' : sid.slice(0, 6);
+    const label  = dup ? `${f} #${n} · ${sidTag}` : f;
+    const slug   = dup ? `${safeSlug(f)}-${n}-${safeSlug(sidTag)}` : safeSlug(f);
+    out.set(sid, { label, slug, folder: f, seq: n, sidTag });
+  }
+  return out;
+}
+
 // ── SSE client registry ───────────────────────────────────────────────────────
 const clients = new Set();
 
@@ -143,11 +181,12 @@ const server = http.createServer((req, res) => {
     for (const e of entries) {
       const sid = e.session_id;
       if (!sessions.has(sid)) {
-        sessions.set(sid, { count: 0, tokensSaved: 0, firstTs: e.ts, cwd: e.cwd });
+        sessions.set(sid, { count: 0, tokensSaved: 0, firstTs: e.ts, lastTs: e.ts, cwd: e.cwd });
       }
       const s = sessions.get(sid);
       s.count        += 1;
       s.tokensSaved  += e.tokens_saved || 0;
+      s.lastTs        = e.ts;
 
       const fpath = extractPath(e);
       if (fpath) {
@@ -164,25 +203,18 @@ const server = http.createServer((req, res) => {
     const nodes = [];
     const colors = { session: '#58a6ff', file: '#3fb950', shared: '#f0883e' };
 
-    // Folder basename helper — name session by its cwd folder
-    const folderName = (cwd, sid) => {
-      if (cwd) {
-        const parts = cwd.replace(/[\\\/]+$/,'').split(/[\\\/]/).filter(Boolean);
-        if (parts.length) return parts[parts.length - 1];
-      }
-      if (sid && sid !== 'unknown') return sid.slice(0,8);
-      return 'local';
-    };
+    const labels = buildSessionLabels(sessions);
 
     for (const [sid, s] of sessions) {
-      const name = folderName(s.cwd, sid);
+      const info = labels.get(sid);
       nodes.push({
         id: 'S:' + sid,
-        label: name,
+        label: info.label,
         group: 'session',
         value: s.count,
-        title: `${name}\nsession: ${sid}\n${s.count} entries\n${s.tokensSaved} tokens saved\ncwd: ${s.cwd || '-'}`,
+        title: `${info.label}\nsession: ${sid}\nslug: ${info.slug}\n${s.count} entries\n${s.tokensSaved} tokens saved\ncwd: ${s.cwd || '-'}\nrange: ${s.firstTs.slice(0,16)} → ${s.lastTs.slice(0,16)}`,
         color: { background: '#1f6feb', border: '#58a6ff' },
+        slug: info.slug,
       });
     }
 
@@ -318,14 +350,52 @@ const server = http.createServer((req, res) => {
     // Also persist to disk so users can hand AIs the file path (no server needed)
     try {
       const claudeDir = path.dirname(MEM_DB);
-      const outName   = sessionFilter
-        ? `cave-mem-handoff-${sessionFilter.slice(0,8)}.md`
-        : 'cave-mem-handoff.md';
+      let outName = 'cave-mem-handoff.md';
+      if (sessionFilter) {
+        // Look up slug from all sessions for stable filename
+        const all = db.prepare('SELECT session_id, cwd, MIN(ts) firstTs, MAX(ts) lastTs, COUNT(*) c, SUM(tokens_saved) ts2 FROM memories GROUP BY session_id').all();
+        const sMap = new Map(all.map(r => [r.session_id, { firstTs:r.firstTs, lastTs:r.lastTs, cwd:r.cwd, count:r.c, tokensSaved:r.ts2 }]));
+        const slug = buildSessionLabels(sMap).get(sessionFilter)?.slug || sessionFilter.slice(0,8);
+        outName = `cave-mem-handoff-${slug}.md`;
+      }
       fs.writeFileSync(path.join(claudeDir, outName), md, 'utf8');
     } catch (_) {}
 
     res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
     res.end(md);
+    return;
+  }
+
+  // ── Sessions list with stable slugs + per-session file paths + URLs ───────
+  if (url === '/sessions') {
+    const rows = db.prepare(
+      `SELECT session_id, MIN(cwd) cwd, MIN(ts) firstTs, MAX(ts) lastTs,
+              COUNT(*) entries, SUM(tokens_saved) tokens_saved
+         FROM memories GROUP BY session_id ORDER BY MIN(ts) ASC`
+    ).all();
+    const sMap = new Map(rows.map(r => [r.session_id,
+      { firstTs: r.firstTs, lastTs: r.lastTs, cwd: r.cwd, count: r.entries, tokensSaved: r.tokens_saved }]));
+    const labels = buildSessionLabels(sMap);
+    const claudeDir = path.dirname(MEM_DB);
+    const origin    = `http://localhost:${PORT}`;
+    const out = rows.map(r => {
+      const info = labels.get(r.session_id);
+      return {
+        session_id:  r.session_id,
+        label:       info.label,
+        slug:        info.slug,
+        folder:      info.folder,
+        cwd:         r.cwd,
+        first_ts:    r.firstTs,
+        last_ts:     r.lastTs,
+        entries:     r.entries,
+        tokens_saved: r.tokens_saved,
+        handoff_url:  `${origin}/handoff?session=${encodeURIComponent(r.session_id)}`,
+        handoff_file: path.join(claudeDir, `cave-mem-handoff-${info.slug}.md`),
+      };
+    });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(out, null, 2));
     return;
   }
 

@@ -314,7 +314,7 @@ async function loadGraph() {
   network.on('dragStart', () => network.setOptions({ physics: { enabled: true } }));
   network.on('dragEnd',   () => { if (physicsEnabled) network.setOptions({ physics: { enabled: true } }); });
 
-  buildSessionHandoffList(data.nodes);
+  buildSessionHandoffList();
 }
 
 function showDetail(node, id) {
@@ -352,22 +352,33 @@ function hideDetail() {
   document.getElementById('detail-section').style.display = 'none';
 }
 
-function buildSessionHandoffList(nodes) {
+async function buildSessionHandoffList() {
   const list = document.getElementById('session-handoff-list');
-  const sessionNodes = nodes.filter(n => n.id.startsWith('S:'));
-  if (sessionNodes.length === 0) { list.textContent = 'No sessions.'; return; }
+  const res  = await fetch('/sessions');
+  const data = await res.json();
+  if (!data.length) { list.textContent = 'No sessions.'; return; }
 
-  list.innerHTML = sessionNodes.map(n => {
-    const sid = n.id.slice(2);
+  list.innerHTML = data.map(s => {
+    const esc = (str) => String(str).replace(/'/g,"\\'").replace(/"/g,'&quot;');
     return `
-      <div style="padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:6px">
-        <div style="min-width:0;flex:1">
-          <div style="font-family:monospace;font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sid}</div>
-          <div style="font-size:10px;color:var(--blue)">${n.value} entries</div>
+      <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-weight:600;font-size:12px;color:var(--text);margin-bottom:2px">${s.label}</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">
+          ${s.entries} entries · ${s.tokens_saved} tok saved · ${s.first_ts.slice(0,10)}
         </div>
-        <button onclick="copyText('${location.origin}/handoff?session=${encodeURIComponent(sid)}')" style="font-size:10px;padding:3px 6px">📋</button>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button onclick="copyText('${esc(s.handoff_file)}')" title="${esc(s.handoff_file)}"
+                  style="font-size:10px;padding:3px 7px">📁 Path</button>
+          <button onclick="copyText('${esc(s.handoff_url)}')" title="${esc(s.handoff_url)}"
+                  style="font-size:10px;padding:3px 7px">🌐 URL</button>
+          <button onclick="window.open('${esc(s.handoff_url)}','_blank')"
+                  style="font-size:10px;padding:3px 7px">↗ Open</button>
+        </div>
       </div>`;
   }).join('');
+
+  // Pre-warm: GET each to materialize slug-named file
+  data.forEach(s => fetch('/handoff?session=' + encodeURIComponent(s.session_id)));
 }
 
 function copyHandoffUrl() { copyText(location.origin + '/handoff'); }
