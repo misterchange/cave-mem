@@ -185,12 +185,12 @@
         Session (size = entry count)
       </div>
       <div class="legend-row">
-        <span class="legend-sq" style="background:#1f6f31;border-color:#3fb950"></span>
-        File (edited / read by 1 session)
+        <span class="legend-dot" style="background:#1f6f31;border-color:#3fb950"></span>
+        File (touched by 1 session)
       </div>
       <div class="legend-row">
-        <span class="legend-sq" style="background:#c16c1a;border-color:#f0883e"></span>
-        Shared file (touched by multiple sessions)
+        <span class="legend-dot" style="background:#c16c1a;border-color:#f0883e"></span>
+        Shared file (multiple sessions)
       </div>
       <div class="legend-row">
         <span style="width:20px;height:1px;background:#30363d"></span>
@@ -274,15 +274,15 @@ async function loadGraph() {
         springLength: 120, springConstant: 0.02, damping: 0.25,
         avoidOverlap: 0.5,
       },
-      minVelocity: 0.2,
+      minVelocity: 0.05,
       timestep: 0.35,
       stabilization: { enabled: true, iterations: 180, fit: true, updateInterval: 25 },
     },
     interaction: { hover: true, tooltipDelay: 150, navigationButtons: false, keyboard: true },
     groups: {
-      session:     { shape: 'dot',    size: 24 },
-      file:        { shape: 'square', size: 10 },
-      'shared-file': { shape: 'square', size: 16 },
+      session:       { shape: 'dot', size: 22 },
+      file:          { shape: 'dot', size: 7  },
+      'shared-file': { shape: 'dot', size: 12 },
     },
   };
 
