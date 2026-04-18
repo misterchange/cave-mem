@@ -164,15 +164,25 @@ const server = http.createServer((req, res) => {
     const nodes = [];
     const colors = { session: '#58a6ff', file: '#3fb950', shared: '#f0883e' };
 
+    // Folder basename helper — name session by its cwd folder
+    const folderName = (cwd, sid) => {
+      if (cwd) {
+        const parts = cwd.replace(/[\\\/]+$/,'').split(/[\\\/]/).filter(Boolean);
+        if (parts.length) return parts[parts.length - 1];
+      }
+      if (sid && sid !== 'unknown') return sid.slice(0,8);
+      return 'local';
+    };
+
     for (const [sid, s] of sessions) {
+      const name = folderName(s.cwd, sid);
       nodes.push({
         id: 'S:' + sid,
-        label: sid.slice(0, 12) + (sid.length > 12 ? '…' : ''),
+        label: name,
         group: 'session',
         value: s.count,
-        title: `Session ${sid}\n${s.count} entries\n${s.tokensSaved} tokens saved\n${s.cwd || ''}`,
+        title: `${name}\nsession: ${sid}\n${s.count} entries\n${s.tokensSaved} tokens saved\ncwd: ${s.cwd || '-'}`,
         color: { background: '#1f6feb', border: '#58a6ff' },
-        shape: 'dot',
       });
     }
 
@@ -184,11 +194,10 @@ const server = http.createServer((req, res) => {
         label: short,
         group: shared ? 'shared-file' : 'file',
         value: f.count,
-        title: `${fp}\n${f.count} touches\n${f.sessions.size} session(s): ${[...f.sessions].map(s=>s.slice(0,8)).join(', ')}`,
+        title: `${fp}\n${f.count} touches\n${f.sessions.size} session(s)`,
         color: shared
           ? { background: '#c16c1a', border: '#f0883e' }
           : { background: '#1f6f31', border: '#3fb950' },
-        shape: 'square',
       });
 
       // edge: session → file (one per session touching this file)

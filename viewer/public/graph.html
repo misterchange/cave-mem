@@ -290,10 +290,17 @@ async function loadGraph() {
 
   network.on('click', params => {
     if (params.nodes.length > 0) {
-      const node = nodes.get(params.nodes[0]);
-      showDetail(node, params.nodes[0]);
+      const nid  = params.nodes[0];
+      const node = nodes.get(nid);
+      showDetail(node, nid);
+      // Obsidian-style zoom-to-node
+      network.focus(nid, {
+        scale: 1.6,
+        animation: { duration: 500, easingFunction: 'easeInOutCubic' },
+      });
     } else {
       hideDetail();
+      network.fit({ animation: { duration: 500, easingFunction: 'easeInOutCubic' } });
     }
   });
 
