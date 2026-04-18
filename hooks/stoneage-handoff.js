@@ -34,19 +34,32 @@ function safeSlug(s) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 40) || 'x';
 }
+// Pick the folder that best represents a session's WORK (not where the process
+// launched). Priority: dominant touched-file parent > cwd > 'local'.
+function workingFolder(session) {
+  // session may carry foldersTouched: Map<folder, count>
+  if (session.foldersTouched && session.foldersTouched.size) {
+    let best = null, bestCount = 0;
+    for (const [f, c] of session.foldersTouched) {
+      if (c > bestCount) { best = f; bestCount = c; }
+    }
+    if (best) return best;
+  }
+  return folderBase(session.cwd);
+}
 function buildSessionLabels(sessions) {
   const entries = [...sessions.entries()].sort(
     (a, b) => (a[1].firstTs || '').localeCompare(b[1].firstTs || '')
   );
   const folderCount = new Map();
   for (const [, s] of entries) {
-    const f = folderBase(s.cwd);
+    const f = workingFolder(s);
     folderCount.set(f, (folderCount.get(f) || 0) + 1);
   }
   const folderSeen = new Map();
   const out = new Map();
   for (const [sid, s] of entries) {
-    const f   = folderBase(s.cwd);
+    const f   = workingFolder(s);
     const dup = folderCount.get(f) > 1;
     const n   = (folderSeen.get(f) || 0) + 1;
     folderSeen.set(f, n);
@@ -56,6 +69,74 @@ function buildSessionLabels(sessions) {
     out.set(sid, { label, slug, folder: f, seq: n, sidTag });
   }
   return out;
+}
+
+// Given raw SQL rows, compute per-session "project folder" by:
+//   1. Collecting every touched file path
+//   2. Counting occurrences of EACH ancestor folder
+//   3. Picking the deepest ancestor that appears in ≥50% of paths
+// This surfaces the project root (e.g. "cave-mem") over both the subfolder
+// ("hooks") and the launch cwd ("coderot-mcp").
+// Generic ancestor folders (appear in many unrelated projects) — skip these
+// when choosing the session's project label.
+const GENERIC_FOLDERS = new Set([
+  'Users', 'home', 'nuweb', '.claude', 'Nitin', 'Nitins', 'src', 'github',
+  'Desktop', 'Documents', 'Projects', 'repos', 'workspace', 'code',
+  'AppData', 'Local', 'Roaming', 'Temp', 'tmp', 'var', 'usr', 'opt',
+  'C:', 'D:', 'E:', 'dev', 'node_modules', '.git',
+]);
+
+function enrichSessionsWithTouches(db, sessionsMap) {
+  // Prefer RECENT work — take last 60 touches per session.
+  const rows = db.prepare(
+    `SELECT session_id, summary, ts
+       FROM memories
+       WHERE tool IN ('Write','Edit','MultiEdit','Read')
+       ORDER BY ts DESC`
+  ).all();
+
+  const pathsBySid = new Map();
+  for (const r of rows) {
+    if (!sessionsMap.has(r.session_id)) continue;
+    const bucket = pathsBySid.get(r.session_id) || [];
+    if (bucket.length >= 60) continue; // cap per session
+    const m = (r.summary || '').match(/\S+[\\\/][\S]+/);
+    if (!m) continue;
+    const fp = m[0].replace(/[\.\,\;\:]+$/, '');
+    const parts = fp.split(/[\\\/]/).filter(p => p && !/^[a-zA-Z]:$/.test(p));
+    if (parts.length < 2) continue;
+    bucket.push(parts.slice(0, -1)); // drop filename
+    pathsBySid.set(r.session_id, bucket);
+  }
+
+  for (const [sid, pathList] of pathsBySid) {
+    // Count distinct paths each folder appears in (skip generics/dotfolders).
+    // Pick highest-frequency folder; break ties by deepest position.
+    const folderPathCount = new Map();
+    const folderMaxDepth  = new Map();
+    for (const parts of pathList) {
+      const seen = new Set();
+      parts.forEach((f, i) => {
+        if (GENERIC_FOLDERS.has(f) || f.startsWith('.')) return;
+        if (seen.has(f)) return;
+        seen.add(f);
+        folderPathCount.set(f, (folderPathCount.get(f) || 0) + 1);
+        if (!folderMaxDepth.has(f) || i > folderMaxDepth.get(f)) {
+          folderMaxDepth.set(f, i);
+        }
+      });
+    }
+    let best = null, bestScore = -1;
+    for (const [f, c] of folderPathCount) {
+      // Score: frequency dominates; depth is a tiebreaker only.
+      const score = c * 1000 + (folderMaxDepth.get(f) || 0);
+      if (score > bestScore) { bestScore = score; best = f; }
+    }
+    if (best) {
+      const s = sessionsMap.get(sid);
+      s.foldersTouched = new Map([[best, folderPathCount.get(best)]]);
+    }
+  }
 }
 
 // ── Generate handoff markdown ────────────────────────────────────────────────
@@ -157,6 +238,7 @@ function writeAllHandoffs(db, opts = {}) {
   const sMap = new Map(rows.map(r =>
     [r.session_id, { firstTs: r.firstTs, lastTs: r.lastTs, cwd: r.cwd, count: r.c }]
   ));
+  enrichSessionsWithTouches(db, sMap);
   const labels = buildSessionLabels(sMap);
 
   for (const [sid, info] of labels) {
@@ -177,4 +259,6 @@ module.exports = {
   safeSlug,
   generateHandoff,
   writeAllHandoffs,
+  enrichSessionsWithTouches,
+  workingFolder,
 };

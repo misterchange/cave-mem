@@ -22,48 +22,21 @@ const PORT = process.env.PORT || 37778;
 // Load shared DB + handoff modules (hooks dir is sibling of viewer dir)
 const { openDB, loadRecent, searchMemories, deleteSession, getStats, MEM_DB } =
   require('../hooks/stoneage-db');
-const { buildSessionLabels: sharedBuildLabels, writeAllHandoffs } =
-  require('../hooks/stoneage-handoff');
+const {
+  buildSessionLabels: sharedBuildLabels,
+  writeAllHandoffs,
+  enrichSessionsWithTouches,
+} = require('../hooks/stoneage-handoff');
 
 const db = openDB();
 
 // ── Session naming ────────────────────────────────────────────────────────────
-// Consistent folder-based label w/ disambiguation when same folder has multiple
-// sessions. Chronological order (earliest = #1). Also returns filesystem-safe
-// slug used for per-session handoff filenames.
-function folderBase(cwd) {
-  if (!cwd) return 'local';
-  const parts = cwd.replace(/[\\\/]+$/, '').split(/[\\\/]/).filter(Boolean);
-  return parts.length ? parts[parts.length - 1] : 'local';
-}
-function safeSlug(s) {
-  return (s || '').toLowerCase().replace(/[^a-z0-9\-]+/g, '-').replace(/^-+|-+$/g,'').slice(0,40) || 'x';
-}
-function buildSessionLabels(sessions) {
-  // sessions: Map<sid, { count, tokensSaved, firstTs, lastTs, cwd }>
-  const entries = [...sessions.entries()].sort(
-    (a, b) => (a[1].firstTs || '').localeCompare(b[1].firstTs || '')
-  );
-  // Count occurrences of each folder, assign #N to duplicates
-  const folderCount = new Map();
-  for (const [, s] of entries) {
-    const f = folderBase(s.cwd);
-    folderCount.set(f, (folderCount.get(f) || 0) + 1);
-  }
-  const folderSeen = new Map();
-  const out = new Map();
-  for (const [sid, s] of entries) {
-    const f   = folderBase(s.cwd);
-    const dup = folderCount.get(f) > 1;
-    const n   = (folderSeen.get(f) || 0) + 1;
-    folderSeen.set(f, n);
-    const sidTag = sid === 'unknown' ? 'sess' : sid.slice(0, 6);
-    const label  = dup ? `${f} #${n} · ${sidTag}` : f;
-    const slug   = dup ? `${safeSlug(f)}-${n}-${safeSlug(sidTag)}` : safeSlug(f);
-    out.set(sid, { label, slug, folder: f, seq: n, sidTag });
-  }
-  return out;
-}
+// Delegated to shared module (hooks/stoneage-handoff.js) — uses the dominant
+// touched-file project folder, not just the launch cwd.
+const buildSessionLabels = (sessions) => {
+  enrichSessionsWithTouches(db, sessions);
+  return sharedBuildLabels(sessions);
+};
 
 // ── SSE client registry ───────────────────────────────────────────────────────
 const clients = new Set();
